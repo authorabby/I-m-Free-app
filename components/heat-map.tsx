@@ -79,15 +79,23 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
 
   const getIntensityColor = (count: number) => {
     const maxCount = participants.length
-    if (count === 0) return "bg-gray-100"
+    if (count === 0) return "bg-gray-50 border-gray-200"
 
     const intensity = count / maxCount
-    if (intensity === 1) return "bg-green-600"
-    if (intensity >= 0.8) return "bg-green-500"
-    if (intensity >= 0.6) return "bg-green-400"
-    if (intensity >= 0.4) return "bg-green-300"
-    if (intensity >= 0.2) return "bg-green-200"
-    return "bg-green-100"
+
+    // More vibrant color progression
+    if (intensity === 1) return "bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-500 shadow-lg"
+    if (intensity >= 0.8) return "bg-gradient-to-br from-emerald-400 to-green-500 border-emerald-400 shadow-md"
+    if (intensity >= 0.6) return "bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-400 shadow-md"
+    if (intensity >= 0.4) return "bg-gradient-to-br from-orange-300 to-yellow-400 border-orange-300 shadow-sm"
+    if (intensity >= 0.2) return "bg-gradient-to-br from-blue-300 to-purple-400 border-blue-300 shadow-sm"
+    return "bg-gradient-to-br from-blue-200 to-purple-300 border-blue-200"
+  }
+
+  const getTextColor = (count: number) => {
+    const maxCount = participants.length
+    const intensity = count / maxCount
+    return intensity >= 0.4 ? "text-white font-bold" : "text-gray-700 font-semibold"
   }
 
   const formatDate = (dateString: string) => {
@@ -112,15 +120,18 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     <div className="space-y-6">
       {/* Best Time Suggestions */}
       {bestTimes.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h3 className="font-semibold text-green-800 mb-3">🎯 Best Time Suggestions</h3>
-          <div className="space-y-2">
+        <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6">
+          <h3 className="font-bold text-emerald-800 mb-4 text-lg flex items-center gap-2">🎯 Perfect Time Matches</h3>
+          <div className="space-y-3">
             {bestTimes.map((suggestion, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <span className="text-green-700">{formatDateTime(suggestion.date, suggestion.time)}</span>
-                <span className="text-sm bg-green-200 text-green-800 px-2 py-1 rounded">
-                  {suggestion.count}/{participants.length} available
-                </span>
+              <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
+                <span className="text-emerald-700 font-medium">{formatDateTime(suggestion.date, suggestion.time)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-semibold">
+                    {suggestion.count}/{participants.length} available
+                  </span>
+                  {suggestion.count === participants.length && <span className="text-emerald-600">✨</span>}
+                </div>
               </div>
             ))}
           </div>
@@ -130,12 +141,12 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
       {/* Heat Map Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-max">
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-3">
             {/* Header */}
             <div className="flex">
               <div className="w-20 flex-shrink-0"></div>
               {dates.map((date) => (
-                <div key={date} className="w-24 text-center text-sm font-medium p-2">
+                <div key={date} className="w-24 text-center text-sm font-bold text-gray-700 p-2">
                   {formatDate(date)}
                 </div>
               ))}
@@ -144,16 +155,15 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
             {/* Time slots */}
             {timeSlots.map((time) => (
               <div key={time} className="flex items-center">
-                <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2">{time}</div>
+                <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2 font-semibold">{time}</div>
                 {dates.map((date) => {
                   const count = getAvailabilityCount(date, time)
                   const intensityColor = getIntensityColor(count)
+                  const textColor = getTextColor(count)
                   return (
                     <div
                       key={`${date}_${time}`}
-                      className={`w-24 h-8 border border-gray-200 flex items-center justify-center text-xs font-medium ${intensityColor} ${
-                        count > 0 ? "text-white" : "text-gray-400"
-                      }`}
+                      className={`w-24 h-12 border-2 flex items-center justify-center text-sm transition-all duration-300 hover:scale-105 rounded-lg mx-0.5 ${intensityColor} ${textColor}`}
                       title={`${count}/${participants.length} available`}
                     >
                       {count > 0 ? count : ""}
@@ -166,24 +176,28 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-sm">
-        <span className="text-gray-600">Availability:</span>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-100 border border-gray-200"></div>
-          <span>None</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-200 border border-gray-200"></div>
-          <span>Low</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-400 border border-gray-200"></div>
-          <span>Medium</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-600 border border-gray-200"></div>
-          <span>High</span>
+      {/* Enhanced Legend */}
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700 font-semibold">Availability Intensity:</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gray-50 border-2 border-gray-200 rounded"></div>
+              <span className="text-sm text-gray-600">None</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-blue-200 to-purple-300 border-2 border-blue-200 rounded"></div>
+              <span className="text-sm text-gray-600">Low</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 border-2 border-yellow-400 rounded"></div>
+              <span className="text-sm text-gray-600">Medium</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-green-600 border-2 border-emerald-500 rounded"></div>
+              <span className="text-sm text-gray-600">High</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

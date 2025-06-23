@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, Users, Plus, Sparkles } from "lucide-react"
+import { Calendar, Clock, Users, Plus, Sparkles, Crown, UserCheck } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { CoverImageSelector } from "@/components/cover-image-selector"
 
@@ -27,6 +27,12 @@ interface EventData {
   createdAt: string
 }
 
+interface UserEventData {
+  eventId: string
+  role: "creator" | "participant"
+  participantName?: string
+}
+
 export default function HomePage() {
   const router = useRouter()
   const [eventTitle, setEventTitle] = useState("")
@@ -38,9 +44,15 @@ export default function HomePage() {
   const [coverImage, setCoverImage] = useState("")
   const [availability, setAvailability] = useState<Record<string, boolean>>({})
   const [existingEvents, setExistingEvents] = useState<EventData[]>([])
+  const [userEvents, setUserEvents] = useState<UserEventData[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   useEffect(() => {
+    // Load user's events from localStorage
+    const userEventsData = localStorage.getItem("userEvents")
+    const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
+    setUserEvents(userEventsList)
+
     // Load existing events from localStorage
     const events: EventData[] = []
     for (let i = 0; i < localStorage.length; i++) {
@@ -48,15 +60,21 @@ export default function HomePage() {
       if (key?.startsWith("event_")) {
         try {
           const eventData = JSON.parse(localStorage.getItem(key) || "{}")
-          events.push({ ...eventData, id: key.replace("event_", "") })
+          const eventId = key.replace("event_", "")
+          events.push({ ...eventData, id: eventId })
         } catch (e) {
           console.error("Error parsing event data:", e)
         }
       }
     }
+
+    // Filter events to only show ones the user is involved in
+    const userEventIds = userEventsList.map((ue) => ue.eventId)
+    const filteredEvents = events.filter((event) => userEventIds.includes(event.id))
+
     // Sort by creation date (newest first)
-    events.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-    setExistingEvents(events)
+    filteredEvents.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    setExistingEvents(filteredEvents)
   }, [])
 
   const handleCreateEvent = () => {
@@ -87,6 +105,16 @@ export default function HomePage() {
 
     // Store in localStorage (in a real app, this would be a database)
     localStorage.setItem(`event_${eventId}`, JSON.stringify(eventData))
+
+    // Update user events
+    const userEventsData = localStorage.getItem("userEvents")
+    const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
+    userEventsList.push({
+      eventId,
+      role: "creator",
+      participantName: creatorName,
+    })
+    localStorage.setItem("userEvents", JSON.stringify(userEventsList))
 
     router.push(`/event/${eventId}`)
   }
@@ -128,6 +156,11 @@ export default function HomePage() {
     return { label: "Active", color: "bg-emerald-100 text-emerald-700" }
   }
 
+  const getUserRole = (eventId: string) => {
+    const userEvent = userEvents.find((ue) => ue.eventId === eventId)
+    return userEvent?.role || "participant"
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto p-6">
@@ -161,10 +194,15 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {existingEvents.map((event) => {
                 const status = getEventStatus(event)
+                const userRole = getUserRole(event.id)
+                const isCreator = userRole === "creator"
+
                 return (
                   <Card
                     key={event.id}
-                    className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md hover:scale-[1.02] bg-white/80 backdrop-blur-sm"
+                    className={`group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 shadow-md hover:scale-[1.02] bg-white/80 backdrop-blur-sm ${
+                      isCreator ? "ring-2 ring-violet-200" : ""
+                    }`}
                     onClick={() => router.push(`/event/${event.id}`)}
                   >
                     <div className="relative">
@@ -178,7 +216,19 @@ export default function HomePage() {
                           <Calendar className="w-8 h-8 text-white/80" />
                         </div>
                       )}
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-3 right-3 flex gap-2">
+                        {isCreator && (
+                          <Badge className="bg-violet-500 text-white border-0 font-medium flex items-center gap-1">
+                            <Crown className="w-3 h-3" />
+                            Creator
+                          </Badge>
+                        )}
+                        {!isCreator && (
+                          <Badge className="bg-blue-500 text-white border-0 font-medium flex items-center gap-1">
+                            <UserCheck className="w-3 h-3" />
+                            Participant
+                          </Badge>
+                        )}
                         <Badge className={`${status.color} border-0 font-medium`}>{status.label}</Badge>
                       </div>
                     </div>
@@ -210,7 +260,9 @@ export default function HomePage() {
                       </div>
 
                       <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-500">Created by {event.creator}</p>
+                        <p className="text-xs text-gray-500">
+                          {isCreator ? "Created by you" : `Created by ${event.creator}`}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

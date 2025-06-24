@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ChevronDown, CalendarIcon } from "lucide-react"
+import { ChevronDown, CalendarIcon, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // This defines what information we need about each person
@@ -19,16 +19,18 @@ interface HeatMapProps {
   startTime: string // What time each day starts (like "09:00")
   endTime: string // What time each day ends (like "17:00")
   participants: Participant[] // List of all people in the event
+  onMeetingConfirmed?: (date: string, time: string) => void // Function to call when a meeting is confirmed
 }
 
 // This component shows a colorful grid that helps find the best meeting times
 // Green = everyone is free, yellow/orange = some people are free, gray = nobody is free
-export function HeatMap({ startDate, endDate, startTime, endTime, participants }: HeatMapProps) {
+export function HeatMap({ startDate, endDate, startTime, endTime, participants, onMeetingConfirmed }: HeatMapProps) {
   // These variables store information we calculate
   const [timeSlots, setTimeSlots] = useState<string[]>([]) // All the time slots (like 9:00, 9:30, 10:00)
   const [dates, setDates] = useState<string[]>([]) // All the dates in the event
   const [bestTimes, setBestTimes] = useState<Array<{ date: string; time: string; count: number }>>([]) // Times when everyone is free
   const [partialMatches, setPartialMatches] = useState<Array<{ date: string; time: string; count: number }>>([]) // Times when some people are free
+  const [showBestTimes, setShowBestTimes] = useState(true) // Whether to show the "perfect matches" section
   const [showPartialMatches, setShowPartialMatches] = useState(false) // Whether to show the "other matches" section
 
   // This stores information about the tooltip (the little popup when you hover over a number)
@@ -100,6 +102,13 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startFormatted}/${endFormatted}&details=${encodeURIComponent(description)}`
 
     return googleCalendarUrl
+  }
+
+  // This function handles when someone confirms a meeting time with the star button
+  const handleConfirmMeeting = (date: string, time: string) => {
+    if (onMeetingConfirmed) {
+      onMeetingConfirmed(date, time)
+    }
   }
 
   // This runs when the component first loads or when the dates/times change
@@ -237,36 +246,59 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
         </div>
       )}
 
-      {/* Perfect Time Matches - times when everyone is available */}
+      {/* Perfect Time Matches - now collapsible like other matches */}
       {bestTimes.length > 0 && (
         <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6">
-          <h3 className="font-bold text-emerald-800 mb-4 text-lg flex items-center gap-2">✨ Perfect Time Matches</h3>
+          <button
+            onClick={() => setShowBestTimes(!showBestTimes)}
+            className="w-full flex items-center justify-between text-left mb-4"
+          >
+            <h3 className="font-bold text-emerald-800 text-lg flex items-center gap-2">Perfect Time Matches</h3>
+            <ChevronDown
+              className={`w-5 h-5 text-emerald-600 transition-transform ${showBestTimes ? "rotate-180" : ""}`}
+            />
+          </button>
           <p className="text-emerald-700 text-sm mb-4">Times when everyone is available</p>
-          <div className="space-y-3">
-            {bestTimes.map((suggestion, index) => (
-              <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
-                <span className="text-emerald-700 font-medium">{formatDateTime(suggestion.date, suggestion.time)}</span>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-sm px-3 py-1 rounded-full font-semibold ${getAvailabilityColor(suggestion.count, participants.length)}`}
-                  >
-                    {suggestion.count}/{participants.length} available
+
+          {showBestTimes && (
+            <div className="space-y-3">
+              {bestTimes.map((suggestion, index) => (
+                <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
+                  <span className="text-emerald-700 font-medium">
+                    {formatDateTime(suggestion.date, suggestion.time)}
                   </span>
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      window.open(createGoogleCalendarLink(suggestion.date, suggestion.time, "Team Meeting"), "_blank")
-                    }
-                    className="bg-blue-500 hover:bg-blue-600 text-white"
-                  >
-                    <CalendarIcon className="w-4 h-4 mr-1" />
-                    Add to Calendar
-                  </Button>
-                  <span className="text-emerald-600">✨</span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-sm px-3 py-1 rounded-full font-semibold ${getAvailabilityColor(suggestion.count, participants.length)}`}
+                    >
+                      {suggestion.count}/{participants.length} available
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleConfirmMeeting(suggestion.date, suggestion.time)}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                      title="Confirm this meeting time"
+                    >
+                      <Star className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        window.open(
+                          createGoogleCalendarLink(suggestion.date, suggestion.time, "Team Meeting"),
+                          "_blank",
+                        )
+                      }
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                      title="Add to Google Calendar"
+                    >
+                      <CalendarIcon className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -277,7 +309,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
             onClick={() => setShowPartialMatches(!showPartialMatches)}
             className="w-full flex items-center justify-between text-left"
           >
-            <h3 className="font-bold text-blue-800 text-lg flex items-center gap-2">🔍 See Other Time Matches</h3>
+            <h3 className="font-bold text-blue-800 text-lg flex items-center gap-2">See Other Time Matches</h3>
             <ChevronDown
               className={`w-5 h-5 text-blue-600 transition-transform ${showPartialMatches ? "rotate-180" : ""}`}
             />
@@ -296,6 +328,14 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
                     </span>
                     <Button
                       size="sm"
+                      onClick={() => handleConfirmMeeting(suggestion.date, suggestion.time)}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                      title="Confirm this meeting time"
+                    >
+                      <Star className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
                       onClick={() =>
                         window.open(
                           createGoogleCalendarLink(suggestion.date, suggestion.time, "Team Meeting"),
@@ -303,9 +343,9 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
                         )
                       }
                       className="bg-blue-500 hover:bg-blue-600 text-white"
+                      title="Add to Google Calendar"
                     >
-                      <CalendarIcon className="w-4 h-4 mr-1" />
-                      Add to Calendar
+                      <CalendarIcon className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -314,6 +354,31 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
           )}
         </div>
       )}
+
+      {/* Legend explaining what the colors mean - moved to top */}
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700 font-semibold">Availability Intensity:</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gray-50 border-2 border-gray-200 rounded"></div>
+              <span className="text-sm text-gray-600">None</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-blue-200 to-purple-300 border-2 border-blue-200 rounded"></div>
+              <span className="text-sm text-gray-600">Low</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 border-2 border-yellow-400 rounded"></div>
+              <span className="text-sm text-gray-600">Medium</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-green-600 border-2 border-emerald-500 rounded"></div>
+              <span className="text-sm text-gray-600">High</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Heat Map Grid - the colorful grid showing all time slots */}
       <div className="overflow-x-auto">
@@ -352,31 +417,6 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
                 })}
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Legend explaining what the colors mean */}
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-700 font-semibold">Availability Intensity:</span>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-50 border-2 border-gray-200 rounded"></div>
-              <span className="text-sm text-gray-600">None</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-200 to-purple-300 border-2 border-blue-200 rounded"></div>
-              <span className="text-sm text-gray-600">Low</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 border-2 border-yellow-400 rounded"></div>
-              <span className="text-sm text-gray-600">Medium</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-green-600 border-2 border-emerald-500 rounded"></div>
-              <span className="text-sm text-gray-600">High</span>
-            </div>
           </div>
         </div>
       </div>

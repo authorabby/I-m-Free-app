@@ -12,7 +12,6 @@ import {
   Users,
   Share2,
   Copy,
-  Sparkles,
   ArrowLeft,
   Crown,
   UserCheck,
@@ -23,10 +22,18 @@ import {
   User,
   Lock,
   Mail,
+  CalendarCheck,
 } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { HeatMap } from "@/components/heat-map"
 import Link from "next/link"
+
+// This defines what information we store about each meeting
+interface Meeting {
+  date: string
+  time: string
+  confirmedAt: string
+}
 
 // This defines what information we store about each person in an event
 interface Participant {
@@ -46,6 +53,7 @@ interface EventData {
   coverImage: string
   coverImageAttribution?: string
   participants: Participant[]
+  meetings?: Meeting[] // List of confirmed meetings
 }
 
 // This defines the connection between users and events
@@ -147,6 +155,30 @@ export default function EventPage() {
       console.log(`📧 Email notifications sent to: ${recipients}`)
       alert(`📧 Email notifications sent to all participants with email addresses!`)
     }
+  }
+
+  // This function handles when a meeting time is confirmed
+  const handleMeetingConfirmed = (date: string, time: string) => {
+    if (!eventData) return
+
+    const newMeeting: Meeting = {
+      date,
+      time,
+      confirmedAt: new Date().toISOString(),
+    }
+
+    const updatedEventData = {
+      ...eventData,
+      meetings: [...(eventData.meetings || []), newMeeting],
+    }
+
+    localStorage.setItem(`event_${eventId}`, JSON.stringify(updatedEventData))
+    setEventData(updatedEventData)
+
+    // Send email notifications about the confirmed meeting
+    sendEmailNotifications(updatedEventData)
+
+    alert(`Meeting confirmed for ${formatDateTime(date, time)}!`)
   }
 
   // This function adds a new person to the event
@@ -258,14 +290,8 @@ export default function EventPage() {
       })
     }
 
-    const formatDayOnly = (date: Date) => {
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-      })
-    }
-
     if (start.toDateString() === end.toDateString()) {
-      return `${formatDateOnly(start)}\n${formatDayOnly(start)}`
+      return formatDateOnly(start)
     }
 
     const startMonth = start.getMonth()
@@ -273,23 +299,18 @@ export default function EventPage() {
     const startYear = start.getFullYear()
     const endYear = end.getFullYear()
 
-    let dateRange = ""
     if (startYear === endYear) {
       if (startMonth === endMonth) {
         // Same month and year
-        dateRange = `${start.toLocaleDateString("en-US", { month: "long" })} ${start.getDate()} to ${end.getDate()}, ${startYear}`
+        return `${start.toLocaleDateString("en-US", { month: "long" })} ${start.getDate()} to ${end.getDate()}, ${startYear}`
       } else {
         // Different months, same year
-        dateRange = `${start.toLocaleDateString("en-US", { month: "long", day: "numeric" })} to ${end.toLocaleDateString("en-US", { month: "long", day: "numeric" })}, ${startYear}`
+        return `${start.toLocaleDateString("en-US", { month: "long", day: "numeric" })} to ${end.toLocaleDateString("en-US", { month: "long", day: "numeric" })}, ${startYear}`
       }
     } else {
       // Different years
-      dateRange = `${formatDateOnly(start)} to ${formatDateOnly(end)}`
+      return `${formatDateOnly(start)} to ${formatDateOnly(end)}`
     }
-
-    const dayRange = `${formatDayOnly(start)} to ${formatDayOnly(end)}`
-
-    return `${dateRange}\n${dayRange}`
   }
 
   // This function formats times to look nice
@@ -299,6 +320,39 @@ export default function EventPage() {
     const ampm = hour >= 12 ? "PM" : "AM"
     const hour12 = hour % 12 || 12
     return `${hour12}:${minutes} ${ampm}`
+  }
+
+  // This function formats date and time together
+  const formatDateTime = (date: string, time: string) => {
+    const dateObj = new Date(date)
+    const formattedDate = dateObj
+      .toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        weekday: "long",
+      })
+      .replace(/(\w+), (\w+ \d+, \d+)/, "$2 - $1")
+    return `${formattedDate} at ${formatTime(time)}`
+  }
+
+  // This function formats meeting information for display
+  const formatMeetingInfo = (meetings: Meeting[] = []) => {
+    if (meetings.length === 0) {
+      return "TBD"
+    }
+
+    if (meetings.length === 1) {
+      const meeting = meetings[0]
+      const date = new Date(meeting.date)
+      const formattedDate = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+      return `${formattedDate} at ${formatTime(meeting.time)}`
+    }
+
+    return `${meetings.length} meetings scheduled`
   }
 
   // Show loading message while checking login
@@ -346,7 +400,7 @@ export default function EventPage() {
             </Link>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+                <Calendar className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
                 I'm Free
@@ -406,14 +460,14 @@ export default function EventPage() {
 
           {/* Event Details */}
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Calendar className="w-5 h-5 text-violet-600" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Date Range</p>
-                  <p className="font-semibold text-gray-900 whitespace-pre-line">
+                  <p className="font-semibold text-gray-900">
                     {formatDateRange(eventData.startDate, eventData.endDate)}
                   </p>
                 </div>
@@ -440,6 +494,19 @@ export default function EventPage() {
                   <p className="font-semibold text-gray-900">
                     {eventData.participants.length} participant{eventData.participants.length !== 1 ? "s" : ""}
                   </p>
+                </div>
+              </div>
+
+              {/* New Meeting section */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CalendarCheck className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">
+                    {eventData.meetings && eventData.meetings.length > 1 ? "Meetings" : "Meeting"}
+                  </p>
+                  <p className="font-semibold text-gray-900">{formatMeetingInfo(eventData.meetings)}</p>
                 </div>
               </div>
             </div>
@@ -653,6 +720,7 @@ export default function EventPage() {
                 startTime={eventData.startTime}
                 endTime={eventData.endTime}
                 participants={eventData.participants}
+                onMeetingConfirmed={handleMeetingConfirmed}
               />
             </CardContent>
           </Card>

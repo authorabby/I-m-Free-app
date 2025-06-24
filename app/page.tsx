@@ -7,9 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, Users, Plus, Sparkles, Crown, UserCheck, LogOut, User, Lock } from "lucide-react"
+import { Calendar, Clock, Users, Plus, Crown, UserCheck, LogOut, User, Lock, CalendarCheck } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { CoverImageSelector } from "@/components/cover-image-selector"
+
+// This defines what information we store about each meeting
+interface Meeting {
+  date: string
+  time: string
+  confirmedAt: string
+}
 
 // This defines what information we store about each event
 interface EventData {
@@ -27,6 +34,7 @@ interface EventData {
     email?: string
     availability: Record<string, boolean>
   }>
+  meetings?: Meeting[] // List of confirmed meetings
   createdAt: string
 }
 
@@ -160,6 +168,7 @@ export default function HomePage() {
           availability,
         },
       ],
+      meetings: [], // Start with no confirmed meetings
       createdAt: new Date().toISOString(),
     }
 
@@ -239,6 +248,25 @@ export default function HomePage() {
     return `${hour12}:${minutes} ${ampm}`
   }
 
+  // This function formats meeting information for display
+  const formatMeetingInfo = (meetings: Meeting[] = []) => {
+    if (meetings.length === 0) {
+      return "TBD"
+    }
+
+    if (meetings.length === 1) {
+      const meeting = meetings[0]
+      const date = new Date(meeting.date)
+      const formattedDate = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+      return `${formattedDate} at ${formatTime(meeting.time)}`
+    }
+
+    return `${meetings.length} meetings scheduled`
+  }
+
   // This function determines what status badge to show for each event
   const getEventStatus = (event: EventData) => {
     const now = new Date()
@@ -246,6 +274,11 @@ export default function HomePage() {
 
     if (endDate < now) {
       return { label: "Completed", color: "bg-gray-100 text-gray-600" }
+    }
+
+    // Check if meetings are set
+    if (event.meetings && event.meetings.length > 0) {
+      return { label: "Meeting Set", color: "bg-emerald-100 text-emerald-700" }
     }
 
     if (event.participants.length === 1) {
@@ -275,7 +308,7 @@ export default function HomePage() {
           <div className="text-center flex-1">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+                <Calendar className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
                 I'm Free
@@ -402,6 +435,15 @@ export default function HomePage() {
                             {event.participants.length} participant{event.participants.length !== 1 ? "s" : ""}
                           </span>
                         </div>
+
+                        {/* New Meeting section */}
+                        <div className="flex items-center gap-2">
+                          <CalendarCheck className="w-4 h-4 text-green-500" />
+                          <span>
+                            {event.meetings && event.meetings.length > 1 ? "Meetings" : "Meeting"}:{" "}
+                            {formatMeetingInfo(event.meetings)}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="mt-3 pt-3 border-t border-gray-100">
@@ -461,7 +503,7 @@ export default function HomePage() {
           <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2 text-xl">
-                <Sparkles className="w-5 h-5" />
+                <Calendar className="w-5 h-5" />
                 Create New Event
               </CardTitle>
               <CardDescription className="text-violet-100">

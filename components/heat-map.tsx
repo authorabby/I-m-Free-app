@@ -1,6 +1,9 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
+import { ChevronDown } from "lucide-react"
 
 interface Participant {
   name: string
@@ -19,6 +22,49 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
   const [timeSlots, setTimeSlots] = useState<string[]>([])
   const [dates, setDates] = useState<string[]>([])
   const [bestTimes, setBestTimes] = useState<Array<{ date: string; time: string; count: number }>>([])
+  const [partialMatches, setPartialMatches] = useState<Array<{ date: string; time: string; count: number }>>([])
+  const [showPartialMatches, setShowPartialMatches] = useState(false)
+  const [tooltip, setTooltip] = useState<{ show: boolean; x: number; y: number; content: string }>({
+    show: false,
+    x: 0,
+    y: 0,
+    content: "",
+  })
+
+  const getAvailabilityColor = (count: number, total: number) => {
+    if (count === 0) return "bg-gray-100 text-gray-600"
+
+    const intensity = count / total
+
+    if (intensity === 1) return "bg-emerald-500 text-white"
+    if (intensity >= 0.8) return "bg-emerald-400 text-white"
+    if (intensity >= 0.6) return "bg-yellow-500 text-white"
+    if (intensity >= 0.4) return "bg-orange-400 text-white"
+    if (intensity >= 0.2) return "bg-blue-400 text-white"
+    return "bg-blue-300 text-gray-700"
+  }
+
+  const getAvailableParticipants = (date: string, time: string) => {
+    const key = `${date}_${time}`
+    return participants.filter((p) => p.availability[key]).map((p) => p.name)
+  }
+
+  const handleMouseEnter = (event: React.MouseEvent, date: string, time: string) => {
+    const availableNames = getAvailableParticipants(date, time)
+    if (availableNames.length > 0) {
+      const rect = event.currentTarget.getBoundingClientRect()
+      setTooltip({
+        show: true,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10,
+        content: availableNames.join(", "),
+      })
+    }
+  }
+
+  const handleMouseLeave = () => {
+    setTooltip({ show: false, x: 0, y: 0, content: "" })
+  }
 
   useEffect(() => {
     // Generate date range
@@ -66,10 +112,16 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
       })
     })
 
-    // Sort by count (descending) and take top suggestions
-    const sortedTimes = timeSlotCounts.sort((a, b) => b.count - a.count).slice(0, 5)
+    // In the useEffect, separate perfect matches from partial matches
+    const perfectMatches = timeSlotCounts.filter((slot) => slot.count === participants.length)
+    const partialMatchesData = timeSlotCounts.filter((slot) => slot.count < participants.length && slot.count > 0)
 
-    setBestTimes(sortedTimes)
+    // Sort both arrays by count (descending)
+    const sortedPerfectMatches = perfectMatches.sort((a, b) => b.count - a.count)
+    const sortedPartialMatches = partialMatchesData.sort((a, b) => b.count - a.count).slice(0, 10)
+
+    setBestTimes(sortedPerfectMatches)
+    setPartialMatches(sortedPartialMatches)
   }, [startDate, endDate, startTime, endTime, participants])
 
   const getAvailabilityCount = (date: string, time: string) => {
@@ -100,41 +152,97 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    })
+    return date
+      .toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        weekday: "long",
+      })
+      .replace(/(\w+), (\w+ \d+, \d+)/, "$2 - $1")
+  }
+
+  const formatTime = (time24: string) => {
+    const [hours, minutes] = time24.split(":")
+    const hour = Number.parseInt(hours, 10)
+    const ampm = hour >= 12 ? "PM" : "AM"
+    const hour12 = hour % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
   }
 
   const formatDateTime = (date: string, time: string) => {
-    const dateObj = new Date(date)
-    return `${dateObj.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    })} at ${time}`
+    return `${formatDate(date)} at ${formatTime(time)}`
   }
 
   return (
-    <div className="space-y-6">
-      {/* Best Time Suggestions */}
+    <div className="space-y-6 relative">
+      {/* Tooltip */}
+      {tooltip.show && (
+        <div
+          className="fixed z-50 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+          }}
+        >
+          <div className="font-medium">Available:</div>
+          <div>{tooltip.content}</div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+        </div>
+      )}
+
+      {/* Perfect Time Matches - Only 100% availability */}
       {bestTimes.length > 0 && (
         <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6">
-          <h3 className="font-bold text-emerald-800 mb-4 text-lg flex items-center gap-2">🎯 Perfect Time Matches</h3>
+          <h3 className="font-bold text-emerald-800 mb-4 text-lg flex items-center gap-2">✨ Perfect Time Matches</h3>
+          <p className="text-emerald-700 text-sm mb-4">Times when everyone is available</p>
           <div className="space-y-3">
             {bestTimes.map((suggestion, index) => (
               <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
                 <span className="text-emerald-700 font-medium">{formatDateTime(suggestion.date, suggestion.time)}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-semibold">
+                  <span
+                    className={`text-sm px-3 py-1 rounded-full font-semibold ${getAvailabilityColor(suggestion.count, participants.length)}`}
+                  >
                     {suggestion.count}/{participants.length} available
                   </span>
-                  {suggestion.count === participants.length && <span className="text-emerald-600">✨</span>}
+                  <span className="text-emerald-600">✨</span>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Partial Matches - Collapsible */}
+      {partialMatches.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+          <button
+            onClick={() => setShowPartialMatches(!showPartialMatches)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <h3 className="font-bold text-blue-800 text-lg flex items-center gap-2">🔍 See Other Time Matches</h3>
+            <ChevronDown
+              className={`w-5 h-5 text-blue-600 transition-transform ${showPartialMatches ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {showPartialMatches && (
+            <div className="space-y-3 mt-4">
+              {partialMatches.map((suggestion, index) => (
+                <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
+                  <span className="text-blue-700 font-medium">{formatDateTime(suggestion.date, suggestion.time)}</span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-sm px-3 py-1 rounded-full font-semibold ${getAvailabilityColor(suggestion.count, participants.length)}`}
+                    >
+                      {suggestion.count}/{participants.length} available
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -147,7 +255,9 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
               <div className="w-20 flex-shrink-0"></div>
               {dates.map((date) => (
                 <div key={date} className="w-24 text-center text-sm font-bold text-gray-700 p-2">
-                  {formatDate(date)}
+                  {formatDate(date).split(" - ")[1]}
+                  <br />
+                  <span className="text-xs text-gray-500">{formatDate(date).split(" - ")[0]}</span>
                 </div>
               ))}
             </div>
@@ -155,7 +265,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
             {/* Time slots */}
             {timeSlots.map((time) => (
               <div key={time} className="flex items-center">
-                <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2 font-semibold">{time}</div>
+                <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2 font-semibold">{formatTime(time)}</div>
                 {dates.map((date) => {
                   const count = getAvailabilityCount(date, time)
                   const intensityColor = getIntensityColor(count)
@@ -163,8 +273,9 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
                   return (
                     <div
                       key={`${date}_${time}`}
-                      className={`w-24 h-12 border-2 flex items-center justify-center text-sm transition-all duration-300 hover:scale-105 rounded-lg mx-0.5 ${intensityColor} ${textColor}`}
-                      title={`${count}/${participants.length} available`}
+                      className={`w-24 h-12 border-2 flex items-center justify-center text-sm transition-all duration-300 hover:scale-105 rounded-lg mx-0.5 cursor-pointer ${intensityColor} ${textColor}`}
+                      onMouseEnter={(e) => handleMouseEnter(e, date, time)}
+                      onMouseLeave={handleMouseLeave}
                     >
                       {count > 0 ? count : ""}
                     </div>

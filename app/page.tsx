@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, Users, Plus, Sparkles, Crown, UserCheck } from "lucide-react"
+import { Calendar, Clock, Users, Plus, Sparkles, Crown, UserCheck, LogOut, User } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { CoverImageSelector } from "@/components/cover-image-selector"
 
@@ -20,6 +20,7 @@ interface EventData {
   endTime: string
   creator: string
   coverImage: string
+  coverImageAttribution?: string
   participants: Array<{
     name: string
     availability: Record<string, boolean>
@@ -33,23 +34,39 @@ interface UserEventData {
   participantName?: string
 }
 
+interface CurrentUser {
+  username: string
+  name: string
+}
+
 export default function HomePage() {
   const router = useRouter()
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [eventTitle, setEventTitle] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [startTime, setStartTime] = useState("09:00")
-  const [endTime, setEndTime] = useState("17:00")
-  const [creatorName, setCreatorName] = useState("")
+  const [startTime, setStartTime] = useState("9:00 AM")
+  const [endTime, setEndTime] = useState("5:00 PM")
   const [coverImage, setCoverImage] = useState("")
+  const [coverImageAttribution, setCoverImageAttribution] = useState("")
   const [availability, setAvailability] = useState<Record<string, boolean>>({})
   const [existingEvents, setExistingEvents] = useState<EventData[]>([])
   const [userEvents, setUserEvents] = useState<UserEventData[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem("currentUser")
+    if (!userData) {
+      router.push("/login")
+      return
+    }
+
+    const user = JSON.parse(userData)
+    setCurrentUser(user)
+
     // Load user's events from localStorage
-    const userEventsData = localStorage.getItem("userEvents")
+    const userEventsData = localStorage.getItem(`userEvents_${user.username}`)
     const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
     setUserEvents(userEventsList)
 
@@ -75,10 +92,32 @@ export default function HomePage() {
     // Sort by creation date (newest first)
     filteredEvents.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     setExistingEvents(filteredEvents)
-  }, [])
+  }, [router])
+
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser")
+    router.push("/login")
+  }
+
+  const convertTo24Hour = (time12h: string) => {
+    const [time, modifier] = time12h.split(" ")
+    let [hours, minutes] = time.split(":")
+    if (hours === "12") {
+      hours = "00"
+    }
+    if (modifier === "PM") {
+      hours = String(Number.parseInt(hours, 10) + 12)
+    }
+    return `${hours}:${minutes}`
+  }
+
+  const handleCoverImageChange = (imageUrl: string, attribution?: string) => {
+    setCoverImage(imageUrl)
+    setCoverImageAttribution(attribution || "")
+  }
 
   const handleCreateEvent = () => {
-    if (!eventTitle || !startDate || !endDate || !creatorName) {
+    if (!eventTitle || !startDate || !endDate || !currentUser) {
       alert("Please fill in all required fields")
       return
     }
@@ -87,13 +126,14 @@ export default function HomePage() {
       title: eventTitle,
       startDate,
       endDate,
-      startTime,
-      endTime,
-      creator: creatorName,
+      startTime: convertTo24Hour(startTime),
+      endTime: convertTo24Hour(endTime),
+      creator: currentUser.name,
       coverImage,
+      coverImageAttribution,
       participants: [
         {
-          name: creatorName,
+          name: currentUser.name,
           availability,
         },
       ],
@@ -107,14 +147,14 @@ export default function HomePage() {
     localStorage.setItem(`event_${eventId}`, JSON.stringify(eventData))
 
     // Update user events
-    const userEventsData = localStorage.getItem("userEvents")
+    const userEventsData = localStorage.getItem(`userEvents_${currentUser.username}`)
     const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
     userEventsList.push({
       eventId,
       role: "creator",
-      participantName: creatorName,
+      participantName: currentUser.name,
     })
-    localStorage.setItem("userEvents", JSON.stringify(userEventsList))
+    localStorage.setItem(`userEvents_${currentUser.username}`, JSON.stringify(userEventsList))
 
     router.push(`/event/${eventId}`)
   }
@@ -123,22 +163,54 @@ export default function HomePage() {
     const start = new Date(startDate)
     const end = new Date(endDate)
 
-    if (start.toDateString() === end.toDateString()) {
-      return start.toLocaleDateString("en-US", {
-        month: "short",
+    const formatDateOnly = (date: Date) => {
+      return date.toLocaleDateString("en-US", {
+        month: "long",
         day: "numeric",
         year: "numeric",
       })
     }
 
-    return `${start.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    })} - ${end.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })}`
+    const formatDayOnly = (date: Date) => {
+      return date.toLocaleDateString("en-US", {
+        weekday: "long",
+      })
+    }
+
+    if (start.toDateString() === end.toDateString()) {
+      return `${formatDateOnly(start)}\n${formatDayOnly(start)}`
+    }
+
+    const startMonth = start.getMonth()
+    const endMonth = end.getMonth()
+    const startYear = start.getFullYear()
+    const endYear = end.getFullYear()
+
+    let dateRange = ""
+    if (startYear === endYear) {
+      if (startMonth === endMonth) {
+        // Same month and year
+        dateRange = `${start.toLocaleDateString("en-US", { month: "long" })} ${start.getDate()} to ${end.getDate()}, ${startYear}`
+      } else {
+        // Different months, same year
+        dateRange = `${start.toLocaleDateString("en-US", { month: "long", day: "numeric" })} to ${end.toLocaleDateString("en-US", { month: "long", day: "numeric" })}, ${startYear}`
+      }
+    } else {
+      // Different years
+      dateRange = `${formatDateOnly(start)} to ${formatDateOnly(end)}`
+    }
+
+    const dayRange = `${formatDayOnly(start)} to ${formatDayOnly(end)}`
+
+    return `${dateRange}\n${dayRange}`
+  }
+
+  const formatTime = (time24: string) => {
+    const [hours, minutes] = time24.split(":")
+    const hour = Number.parseInt(hours, 10)
+    const ampm = hour >= 12 ? "PM" : "AM"
+    const hour12 = hour % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
   }
 
   const getEventStatus = (event: EventData) => {
@@ -161,20 +233,42 @@ export default function HomePage() {
     return userEvent?.role || "participant"
   }
 
+  if (!currentUser) {
+    return <div>Loading...</div>
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between mb-12">
+          <div className="text-center flex-1">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                I'm Free
+              </h1>
             </div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-              I'm Free
-            </h1>
+            <p className="text-xl text-gray-600 font-medium">Find the perfect time when everyone's available</p>
           </div>
-          <p className="text-xl text-gray-600 font-medium">Find the perfect time when everyone's available</p>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
+              <User className="w-4 h-4 text-violet-600" />
+              <span className="font-medium text-gray-700">{currentUser.name}</span>
+            </div>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="border-gray-200 text-gray-600 hover:bg-gray-50"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Events Dashboard */}
@@ -239,15 +333,15 @@ export default function HomePage() {
                       </h3>
 
                       <div className="space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-violet-500" />
-                          <span>{formatDateRange(event.startDate, event.endDate)}</span>
+                        <div className="flex items-start gap-2">
+                          <Calendar className="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                          <span className="whitespace-pre-line">{formatDateRange(event.startDate, event.endDate)}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-purple-500" />
                           <span>
-                            {event.startTime} - {event.endTime}
+                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
                           </span>
                         </div>
 
@@ -311,34 +405,20 @@ export default function HomePage() {
               {/* Cover Image Selector */}
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-gray-700">Cover Image</Label>
-                <CoverImageSelector value={coverImage} onChange={setCoverImage} />
+                <CoverImageSelector value={coverImage} onChange={handleCoverImageChange} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="eventTitle" className="text-sm font-semibold text-gray-700">
-                    Event Title *
-                  </Label>
-                  <Input
-                    id="eventTitle"
-                    placeholder="Team Meeting, Coffee Chat, etc."
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                    className="border-gray-200 focus:border-violet-500 focus:ring-violet-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="creatorName" className="text-sm font-semibold text-gray-700">
-                    Your Name *
-                  </Label>
-                  <Input
-                    id="creatorName"
-                    placeholder="Enter your name"
-                    value={creatorName}
-                    onChange={(e) => setCreatorName(e.target.value)}
-                    className="border-gray-200 focus:border-violet-500 focus:ring-violet-500"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="eventTitle" className="text-sm font-semibold text-gray-700">
+                  Event Title *
+                </Label>
+                <Input
+                  id="eventTitle"
+                  placeholder="Team Meeting, Coffee Chat, etc."
+                  value={eventTitle}
+                  onChange={(e) => setEventTitle(e.target.value)}
+                  className="border-gray-200 focus:border-violet-500 focus:ring-violet-500"
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -373,25 +453,45 @@ export default function HomePage() {
                   <Label htmlFor="startTime" className="text-sm font-semibold text-gray-700">
                     Start Time
                   </Label>
-                  <Input
+                  <select
                     id="startTime"
-                    type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="border-gray-200 focus:border-violet-500 focus:ring-violet-500"
-                  />
+                    className="flex h-10 w-full rounded-md border border-gray-200 bg-background px-3 py-2 text-sm ring-offset-background focus:border-violet-500 focus:ring-violet-500 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const hour = i
+                      const ampm = hour >= 12 ? "PM" : "AM"
+                      const hour12 = hour % 12 || 12
+                      return (
+                        <option key={i} value={`${hour12}:00 ${ampm}`}>
+                          {hour12}:00 {ampm}
+                        </option>
+                      )
+                    })}
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endTime" className="text-sm font-semibold text-gray-700">
                     End Time
                   </Label>
-                  <Input
+                  <select
                     id="endTime"
-                    type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="border-gray-200 focus:border-violet-500 focus:ring-violet-500"
-                  />
+                    className="flex h-10 w-full rounded-md border border-gray-200 bg-background px-3 py-2 text-sm ring-offset-background focus:border-violet-500 focus:ring-violet-500 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const hour = i
+                      const ampm = hour >= 12 ? "PM" : "AM"
+                      const hour12 = hour % 12 || 12
+                      return (
+                        <option key={i} value={`${hour12}:00 ${ampm}`}>
+                          {hour12}:00 {ampm}
+                        </option>
+                      )
+                    })}
+                  </select>
                 </div>
               </div>
 
@@ -402,8 +502,8 @@ export default function HomePage() {
                     <AvailabilitySelector
                       startDate={startDate}
                       endDate={endDate}
-                      startTime={startTime}
-                      endTime={endTime}
+                      startTime={convertTo24Hour(startTime)}
+                      endTime={convertTo24Hour(endTime)}
                       availability={availability}
                       onAvailabilityChange={setAvailability}
                     />

@@ -2,11 +2,13 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ImageIcon, Palette, Calendar, Users, Coffee, Briefcase, Heart, Star } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ImageIcon, Palette, Calendar, Users, Coffee, Briefcase, Heart, Star, Search } from "lucide-react"
+import { UnsplashImageSelector } from "./unsplash-image-selector"
 
 interface CoverImageSelectorProps {
   value: string
-  onChange: (value: string) => void
+  onChange: (value: string, attribution?: string) => void
 }
 
 const gradients = [
@@ -116,47 +118,69 @@ export function CoverImageSelector({ value, onChange }: CoverImageSelectorProps)
         )}
       </div>
 
-      {/* Gradient Options */}
-      <div>
-        <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-          <Palette className="w-4 h-4" />
-          Choose Background
-        </p>
-        <div className="grid grid-cols-5 gap-2">
-          {gradients.map((gradient, index) => (
-            <button
-              key={index}
-              onClick={() => handleGradientSelect(gradient)}
-              className={`h-12 rounded-lg border-2 transition-all ${
-                selectedGradient === gradient ? "border-violet-500 scale-105" : "border-gray-200 hover:border-gray-300"
-              }`}
-              style={{ background: gradient }}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Tabs for different cover types */}
+      <Tabs defaultValue="gradient" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="gradient" className="flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            Colors & Icons
+          </TabsTrigger>
+          <TabsTrigger value="photos" className="flex items-center gap-2">
+            <Search className="w-4 h-4" />
+            Photos
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Icon Options */}
-      <div>
-        <p className="text-sm font-medium text-gray-700 mb-3">Choose Icon</p>
-        <div className="grid grid-cols-6 gap-2">
-          {icons.map((iconData, index) => {
-            const IconComponent = iconData.icon
-            return (
-              <button
-                key={index}
-                onClick={() => handleIconSelect(index)}
-                className={`h-12 rounded-lg border-2 transition-all flex items-center justify-center ${
-                  selectedIcon === index ? "border-violet-500 scale-105" : "border-gray-200 hover:border-gray-300"
-                }`}
-                style={{ background: selectedGradient }}
-              >
-                <IconComponent className="w-5 h-5 text-white" />
-              </button>
-            )
-          })}
-        </div>
-      </div>
+        <TabsContent value="gradient" className="space-y-4 mt-4">
+          {/* Gradient Options */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              Choose Background
+            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {gradients.map((gradient, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleGradientSelect(gradient)}
+                  className={`h-12 rounded-lg border-2 transition-all ${
+                    selectedGradient === gradient
+                      ? "border-violet-500 scale-105"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  style={{ background: gradient }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Icon Options */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-3">Choose Icon</p>
+            <div className="grid grid-cols-6 gap-2">
+              {icons.map((iconData, index) => {
+                const IconComponent = iconData.icon
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleIconSelect(index)}
+                    className={`h-12 rounded-lg border-2 transition-all flex items-center justify-center ${
+                      selectedIcon === index ? "border-violet-500 scale-105" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    style={{ background: selectedGradient }}
+                  >
+                    <IconComponent className="w-5 h-5 text-white" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="photos" className="mt-4">
+          <UnsplashImageSelector value={value} onChange={onChange} />
+        </TabsContent>
+      </Tabs>
 
       <Button
         variant="outline"

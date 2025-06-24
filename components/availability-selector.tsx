@@ -103,11 +103,22 @@ export function AvailabilitySelector({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    })
+    return date
+      .toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        weekday: "long",
+      })
+      .replace(/(\w+), (\w+ \d+, \d+)/, "$2 - $1")
+  }
+
+  const formatTime = (time24: string) => {
+    const [hours, minutes] = time24.split(":")
+    const hour = Number.parseInt(hours, 10)
+    const ampm = hour >= 12 ? "PM" : "AM"
+    const hour12 = hour % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
   }
 
   return (
@@ -120,7 +131,9 @@ export function AvailabilitySelector({
               <div className="w-20 flex-shrink-0"></div>
               {dates.map((date) => (
                 <div key={date} className="w-24 text-center text-sm font-semibold text-gray-700 p-2">
-                  {formatDate(date)}
+                  {formatDate(date).split(" - ")[1]}
+                  <br />
+                  <span className="text-xs text-gray-500">{formatDate(date).split(" - ")[0]}</span>
                 </div>
               ))}
             </div>
@@ -128,7 +141,7 @@ export function AvailabilitySelector({
             {/* Time slots */}
             {timeSlots.map((time) => (
               <div key={time} className="flex items-center">
-                <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2 font-medium">{time}</div>
+                <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2 font-medium">{formatTime(time)}</div>
                 {dates.map((date) => {
                   const key = getSlotKey(date, time)
                   const isSelected = availability[key]

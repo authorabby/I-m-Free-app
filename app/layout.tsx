@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
   title: "I'm Free - Beautiful Scheduling",
@@ -15,7 +16,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <ThemeProvider defaultTheme="light" storageKey="im-free-theme">
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

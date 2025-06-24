@@ -23,9 +23,12 @@ import {
   Lock,
   Mail,
   CalendarCheck,
+  Moon,
+  Sun,
 } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { HeatMap } from "@/components/heat-map"
+import { useTheme } from "@/components/theme-provider"
 import Link from "next/link"
 
 // This defines what information we store about each meeting
@@ -76,6 +79,7 @@ export default function EventPage() {
   const params = useParams()
   const router = useRouter()
   const eventId = params.id as string
+  const { theme, setTheme } = useTheme()
 
   // These variables store the current state of the page
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
@@ -363,16 +367,18 @@ export default function EventPage() {
   // Show error message if event doesn't exist
   if (!eventData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 flex items-center justify-center">
-        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <Card className="border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
           <CardContent className="p-12 text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-red-500" />
+            <div className="w-16 h-16 bg-gradient-to-br from-red-100 to-pink-100 dark:from-red-900 dark:to-pink-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-red-500 dark:text-red-400" />
             </div>
-            <h2 className="text-2xl font-bold mb-3 text-gray-900">Event not found</h2>
-            <p className="text-gray-600 mb-6">This event may have been deleted or the link is invalid.</p>
+            <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">Event not found</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              This event may have been deleted or the link is invalid.
+            </p>
             <Link href="/">
-              <Button className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white">
+              <Button className="bg-gradient-to-r from-violet-500 to-purple-600 dark:from-orange-500 dark:to-pink-500 hover:from-violet-600 hover:to-purple-700 dark:hover:from-orange-600 dark:hover:to-pink-600 text-white">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
               </Button>
@@ -387,34 +393,46 @@ export default function EventPage() {
 
   // This is what shows up on the screen
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-6xl mx-auto p-6">
         {/* Header section */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button variant="outline" size="sm" className="border-gray-200 text-gray-600 hover:bg-gray-50">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
             </Link>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 dark:from-orange-500 dark:to-pink-500 rounded-xl flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 dark:from-orange-400 dark:to-pink-400 bg-clip-text text-transparent">
                 I'm Free
               </h1>
             </div>
           </div>
 
-          {/* User info and logout */}
+          {/* User info, theme toggle, and logout */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
-              <User className="w-4 h-4 text-violet-600" />
-              <span className="font-medium text-gray-700">{currentUser.name}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            </Button>
+            <div className="flex items-center gap-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20 dark:border-gray-700/20">
+              <User className="w-4 h-4 text-violet-600 dark:text-orange-400" />
+              <span className="font-medium text-gray-700 dark:text-gray-200">{currentUser.name}</span>
               {isDemoAccount && (
-                <Badge className="bg-orange-100 text-orange-700 border-0 text-xs flex items-center gap-1">
+                <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 border-0 text-xs flex items-center gap-1">
                   <Lock className="w-3 h-3" />
                   Demo
                 </Badge>
@@ -424,7 +442,7 @@ export default function EventPage() {
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="border-gray-200 text-gray-600 hover:bg-gray-50"
+              className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -433,7 +451,7 @@ export default function EventPage() {
         </div>
 
         {/* Event Header Card */}
-        <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden">
+        <Card className="mb-8 border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm overflow-hidden">
           {/* Cover Image */}
           {eventData.coverImage ? (
             <div className="relative">
@@ -447,11 +465,11 @@ export default function EventPage() {
                 </div>
               </div>
               {eventData.coverImageAttribution && (
-                <p className="text-xs text-gray-500 p-2">{eventData.coverImageAttribution}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 p-2">{eventData.coverImageAttribution}</p>
               )}
             </div>
           ) : (
-            <div className="h-48 bg-gradient-to-br from-violet-400 via-purple-500 to-pink-500 relative">
+            <div className="h-48 bg-gradient-to-br from-violet-400 via-purple-500 to-pink-500 dark:from-orange-400 dark:via-pink-500 dark:to-purple-500 relative">
               <div className="absolute bottom-4 left-6 text-white">
                 <h2 className="text-3xl font-bold mb-2">{eventData.title}</h2>
               </div>
@@ -462,36 +480,36 @@ export default function EventPage() {
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-5 h-5 text-violet-600" />
+                <div className="w-10 h-10 bg-violet-100 dark:bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 text-violet-600 dark:text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Date Range</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Date Range</p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {formatDateRange(eventData.startDate, eventData.endDate)}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-purple-600" />
+                <div className="w-10 h-10 bg-purple-100 dark:bg-pink-100 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-purple-600 dark:text-pink-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Time Range</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Time Range</p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {formatTime(eventData.startTime)} - {formatTime(eventData.endTime)}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-pink-600" />
+                <div className="w-10 h-10 bg-pink-100 dark:bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-pink-600 dark:text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">Participants</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Participants</p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     {eventData.participants.length} participant{eventData.participants.length !== 1 ? "s" : ""}
                   </p>
                 </div>
@@ -499,23 +517,28 @@ export default function EventPage() {
 
               {/* New Meeting section */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <CalendarCheck className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                  <CalendarCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                     {eventData.meetings && eventData.meetings.length > 1 ? "Meetings" : "Meeting"}
                   </p>
-                  <p className="font-semibold text-gray-900">{formatMeetingInfo(eventData.meetings)}</p>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                    {formatMeetingInfo(eventData.meetings)}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Creator and Participant Info */}
-            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Created by</span>
-                <Badge variant="secondary" className="bg-violet-100 text-violet-700 border-0 flex items-center gap-1">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Created by</span>
+                <Badge
+                  variant="secondary"
+                  className="bg-violet-100 text-violet-700 dark:bg-orange-900 dark:text-orange-300 border-0 flex items-center gap-1"
+                >
                   <Crown className="w-3 h-3" />
                   {eventData.creator}
                   {userRole === "creator" && " (You)"}
@@ -525,7 +548,7 @@ export default function EventPage() {
                     <Badge
                       key={index}
                       variant="outline"
-                      className="border-gray-200 text-gray-600 flex items-center gap-1"
+                      className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 flex items-center gap-1"
                     >
                       <UserCheck className="w-3 h-3" />
                       {participant.name}
@@ -544,14 +567,14 @@ export default function EventPage() {
                         placeholder="Enter your name"
                         value={participantName}
                         onChange={(e) => setParticipantName(e.target.value)}
-                        className="w-40 h-9 border-gray-200 focus:border-violet-500 focus:ring-violet-500"
+                        className="w-40 h-9 border-gray-200 dark:border-gray-700 focus:border-violet-500 dark:focus:border-orange-500 focus:ring-violet-500 dark:focus:ring-orange-500 dark:bg-gray-800 dark:text-gray-100"
                       />
                       <Input
                         placeholder="Email (optional)"
                         type="email"
                         value={participantEmail}
                         onChange={(e) => setParticipantEmail(e.target.value)}
-                        className="w-40 h-9 border-gray-200 focus:border-violet-500 focus:ring-violet-500"
+                        className="w-40 h-9 border-gray-200 dark:border-gray-700 focus:border-violet-500 dark:focus:border-orange-500 focus:ring-violet-500 dark:focus:ring-orange-500 dark:bg-gray-800 dark:text-gray-100"
                       />
                     </div>
                     <Button
@@ -567,7 +590,7 @@ export default function EventPage() {
 
                 {/* Demo account message */}
                 {userRole === "none" && !isUserParticipant && isDemoAccount && (
-                  <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                  <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded-lg border border-orange-200 dark:border-orange-800">
                     <Lock className="w-4 h-4" />
                     <span className="text-sm font-medium">Demo Mode - Cannot Join</span>
                   </div>
@@ -577,7 +600,7 @@ export default function EventPage() {
                   variant="outline"
                   size="sm"
                   onClick={copyShareUrl}
-                  className="border-violet-200 text-violet-600 hover:bg-violet-50"
+                  className="border-violet-200 dark:border-orange-400 text-violet-600 dark:text-orange-400 hover:bg-violet-50 dark:hover:bg-orange-900/20"
                 >
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Link
@@ -590,13 +613,13 @@ export default function EventPage() {
 
         {/* Participants List with Edit Options */}
         {eventData.participants.length > 0 && (
-          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
+          <Card className="mb-8 border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-orange-500 dark:to-pink-500 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Users className="w-5 h-5" />
                 Participants & Availability
               </CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardDescription className="text-blue-100 dark:text-orange-100">
                 {isDemoAccount
                   ? "View participant availability (editing disabled in demo mode)"
                   : "Manage participant availability - creators can edit anyone, participants can edit their own"}
@@ -605,35 +628,42 @@ export default function EventPage() {
             <CardContent className="p-6">
               <div className="space-y-4">
                 {eventData.participants.map((participant, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full flex items-center justify-center">
-                        <span className="font-semibold text-violet-600">
+                      <div className="w-10 h-10 bg-gradient-to-br from-violet-100 to-purple-100 dark:from-orange-100 dark:to-pink-100 rounded-full flex items-center justify-center">
+                        <span className="font-semibold text-violet-600 dark:text-orange-600">
                           {participant.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 flex items-center gap-2">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                           {participant.name}
                           {participant.name === eventData.creator && (
-                            <Badge className="bg-violet-100 text-violet-700 border-0 text-xs flex items-center gap-1">
+                            <Badge className="bg-violet-100 text-violet-700 dark:bg-orange-900 dark:text-orange-300 border-0 text-xs flex items-center gap-1">
                               <Crown className="w-3 h-3" />
                               Creator
                             </Badge>
                           )}
                           {participant.name === currentUser.name && (
-                            <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">You</Badge>
+                            <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-0 text-xs">
+                              You
+                            </Badge>
                           )}
                           {participant.email && (
-                            <Badge className="bg-green-100 text-green-700 border-0 text-xs flex items-center gap-1">
+                            <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-0 text-xs flex items-center gap-1">
                               <Mail className="w-3 h-3" />
                               Email
                             </Badge>
                           )}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
                           {Object.values(participant.availability).filter(Boolean).length} time slots selected
-                          {participant.email && <span className="text-green-600 ml-2">• {participant.email}</span>}
+                          {participant.email && (
+                            <span className="text-green-600 dark:text-green-400 ml-2">• {participant.email}</span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -642,14 +672,14 @@ export default function EventPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditAvailability(participant.name)}
-                        className="border-violet-200 text-violet-600 hover:bg-violet-50"
+                        className="border-violet-200 dark:border-orange-400 text-violet-600 dark:text-orange-400 hover:bg-violet-50 dark:hover:bg-orange-900/20"
                       >
                         <Edit2 className="w-4 h-4 mr-2" />
                         Edit Availability
                       </Button>
                     )}
                     {isDemoAccount && (
-                      <div className="flex items-center gap-2 text-orange-600">
+                      <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
                         <Lock className="w-4 h-4" />
                         <span className="text-sm">Demo Mode</span>
                       </div>
@@ -663,15 +693,15 @@ export default function EventPage() {
 
         {/* Edit Availability Modal */}
         {editingParticipant && !isDemoAccount && (
-          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-t-lg">
+          <Card className="mb-8 border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 dark:from-yellow-500 dark:to-orange-500 text-white rounded-t-lg">
               <CardTitle className="text-xl">Edit Availability for {editingParticipant}</CardTitle>
-              <CardDescription className="text-orange-100">
+              <CardDescription className="text-orange-100 dark:text-yellow-100">
                 Update the availability using click and drag
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-              <div className="bg-gray-50 rounded-xl p-4">
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
                 <AvailabilitySelector
                   startDate={eventData.startDate}
                   endDate={eventData.endDate}
@@ -686,7 +716,7 @@ export default function EventPage() {
                 <Button
                   variant="outline"
                   onClick={handleCancelEdit}
-                  className="border-gray-200 text-gray-600 hover:bg-gray-50"
+                  className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancel
@@ -705,13 +735,15 @@ export default function EventPage() {
 
         {/* Heat Map */}
         {eventData.participants.length > 0 && !editingParticipant && (
-          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-t-lg">
+          <Card className="mb-8 border-0 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-600 dark:from-green-600 dark:to-emerald-500 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Clock className="w-5 h-5" />
                 Availability Heat Map
               </CardTitle>
-              <CardDescription className="text-emerald-100">Discover when everyone is free</CardDescription>
+              <CardDescription className="text-emerald-100 dark:text-green-100">
+                Discover when everyone is free
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
               <HeatMap

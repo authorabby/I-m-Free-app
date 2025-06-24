@@ -43,16 +43,16 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
 
   // This function picks the right color based on how many people are available
   const getAvailabilityColor = (count: number, total: number) => {
-    if (count === 0) return "bg-gray-100 text-gray-600" // Nobody available = gray
+    if (count === 0) return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" // Nobody available = gray
 
     const intensity = count / total // What percentage of people are free
 
-    if (intensity === 1) return "bg-emerald-500 text-white" // Everyone free = green
-    if (intensity >= 0.8) return "bg-emerald-400 text-white" // Most people free = light green
-    if (intensity >= 0.6) return "bg-yellow-500 text-white" // More than half free = yellow
-    if (intensity >= 0.4) return "bg-orange-400 text-white" // Some people free = orange
-    if (intensity >= 0.2) return "bg-blue-400 text-white" // Few people free = blue
-    return "bg-blue-300 text-gray-700" // Very few people free = light blue
+    if (intensity === 1) return "bg-emerald-500 text-white dark:bg-emerald-600 dark:text-white" // Everyone free = green
+    if (intensity >= 0.8) return "bg-emerald-400 text-white dark:bg-emerald-500 dark:text-white" // Most people free = light green
+    if (intensity >= 0.6) return "bg-yellow-500 text-white dark:bg-yellow-600 dark:text-white" // More than half free = yellow
+    if (intensity >= 0.4) return "bg-orange-400 text-white dark:bg-orange-500 dark:text-white" // Some people free = orange
+    if (intensity >= 0.2) return "bg-blue-400 text-white dark:bg-blue-500 dark:text-white" // Few people free = blue
+    return "bg-blue-300 text-gray-700 dark:bg-blue-400 dark:text-gray-200" // Very few people free = light blue
   }
 
   // This function finds out who is available at a specific time
@@ -181,24 +181,29 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
   // This function picks the right background color for each cell in the grid
   const getIntensityColor = (count: number) => {
     const maxCount = participants.length
-    if (count === 0) return "bg-gray-50 border-gray-200"
+    if (count === 0) return "bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700"
 
     const intensity = count / maxCount
 
     // Use gradients to make it look nice
-    if (intensity === 1) return "bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-500 shadow-lg"
-    if (intensity >= 0.8) return "bg-gradient-to-br from-emerald-400 to-green-500 border-emerald-400 shadow-md"
-    if (intensity >= 0.6) return "bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-400 shadow-md"
-    if (intensity >= 0.4) return "bg-gradient-to-br from-orange-300 to-yellow-400 border-orange-300 shadow-sm"
-    if (intensity >= 0.2) return "bg-gradient-to-br from-blue-300 to-purple-400 border-blue-300 shadow-sm"
-    return "bg-gradient-to-br from-blue-200 to-purple-300 border-blue-200"
+    if (intensity === 1)
+      return "bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-500 shadow-lg dark:from-emerald-600 dark:to-green-700 dark:border-emerald-600"
+    if (intensity >= 0.8)
+      return "bg-gradient-to-br from-emerald-400 to-green-500 border-emerald-400 shadow-md dark:from-emerald-500 dark:to-green-600 dark:border-emerald-500"
+    if (intensity >= 0.6)
+      return "bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-400 shadow-md dark:from-yellow-500 dark:to-orange-600 dark:border-yellow-500"
+    if (intensity >= 0.4)
+      return "bg-gradient-to-br from-orange-300 to-yellow-400 border-orange-300 shadow-sm dark:from-orange-400 dark:to-yellow-500 dark:border-orange-400"
+    if (intensity >= 0.2)
+      return "bg-gradient-to-br from-blue-300 to-purple-400 border-blue-300 shadow-sm dark:from-blue-400 dark:to-purple-500 dark:border-blue-400"
+    return "bg-gradient-to-br from-blue-200 to-purple-300 border-blue-200 dark:from-blue-300 dark:to-purple-400 dark:border-blue-300"
   }
 
   // This function picks the right text color for each cell
   const getTextColor = (count: number) => {
     const maxCount = participants.length
     const intensity = count / maxCount
-    return intensity >= 0.4 ? "text-white font-bold" : "text-gray-700 font-semibold"
+    return intensity >= 0.4 ? "text-white font-bold" : "text-gray-700 dark:text-gray-200 font-semibold"
   }
 
   // This function formats dates to look nice (like "January 6, 2025 - Monday")
@@ -234,7 +239,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
       {/* Tooltip - the little popup that shows who's available */}
       {tooltip.show && (
         <div
-          className="fixed z-50 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          className="fixed z-50 bg-gray-900 dark:bg-gray-800 text-white text-sm px-3 py-2 rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
           style={{
             left: tooltip.x,
             top: tooltip.y,
@@ -242,29 +247,34 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
         >
           <div className="font-medium">Available:</div>
           <div>{tooltip.content}</div>
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
         </div>
       )}
 
       {/* Perfect Time Matches - now collapsible like other matches */}
       {bestTimes.length > 0 && (
-        <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6">
+        <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
           <button
             onClick={() => setShowBestTimes(!showBestTimes)}
             className="w-full flex items-center justify-between text-left mb-4"
           >
-            <h3 className="font-bold text-emerald-800 text-lg flex items-center gap-2">Perfect Time Matches</h3>
+            <h3 className="font-bold text-emerald-800 dark:text-emerald-300 text-lg flex items-center gap-2">
+              Perfect Time Matches
+            </h3>
             <ChevronDown
-              className={`w-5 h-5 text-emerald-600 transition-transform ${showBestTimes ? "rotate-180" : ""}`}
+              className={`w-5 h-5 text-emerald-600 dark:text-emerald-400 transition-transform ${showBestTimes ? "rotate-180" : ""}`}
             />
           </button>
-          <p className="text-emerald-700 text-sm mb-4">Times when everyone is available</p>
+          <p className="text-emerald-700 dark:text-emerald-300 text-sm mb-4">Times when everyone is available</p>
 
           {showBestTimes && (
             <div className="space-y-3">
               {bestTimes.map((suggestion, index) => (
-                <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
-                  <span className="text-emerald-700 font-medium">
+                <div
+                  key={index}
+                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm"
+                >
+                  <span className="text-emerald-700 dark:text-emerald-300 font-medium">
                     {formatDateTime(suggestion.date, suggestion.time)}
                   </span>
                   <div className="flex items-center gap-2">
@@ -276,7 +286,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
                     <Button
                       size="sm"
                       onClick={() => handleConfirmMeeting(suggestion.date, suggestion.time)}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                      className="bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700 text-white"
                       title="Confirm this meeting time"
                     >
                       <Star className="w-4 h-4" />
@@ -289,7 +299,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
                           "_blank",
                         )
                       }
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                      className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
                       title="Add to Google Calendar"
                     >
                       <CalendarIcon className="w-4 h-4" />
@@ -304,22 +314,29 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
 
       {/* Partial Matches - times when some people are available (can be hidden/shown) */}
       {partialMatches.length > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
           <button
             onClick={() => setShowPartialMatches(!showPartialMatches)}
             className="w-full flex items-center justify-between text-left"
           >
-            <h3 className="font-bold text-blue-800 text-lg flex items-center gap-2">See Other Time Matches</h3>
+            <h3 className="font-bold text-blue-800 dark:text-blue-300 text-lg flex items-center gap-2">
+              See Other Time Matches
+            </h3>
             <ChevronDown
-              className={`w-5 h-5 text-blue-600 transition-transform ${showPartialMatches ? "rotate-180" : ""}`}
+              className={`w-5 h-5 text-blue-600 dark:text-blue-400 transition-transform ${showPartialMatches ? "rotate-180" : ""}`}
             />
           </button>
 
           {showPartialMatches && (
             <div className="space-y-3 mt-4">
               {partialMatches.map((suggestion, index) => (
-                <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
-                  <span className="text-blue-700 font-medium">{formatDateTime(suggestion.date, suggestion.time)}</span>
+                <div
+                  key={index}
+                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm"
+                >
+                  <span className="text-blue-700 dark:text-blue-300 font-medium">
+                    {formatDateTime(suggestion.date, suggestion.time)}
+                  </span>
                   <div className="flex items-center gap-2">
                     <span
                       className={`text-sm px-3 py-1 rounded-full font-semibold ${getAvailabilityColor(suggestion.count, participants.length)}`}
@@ -329,7 +346,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
                     <Button
                       size="sm"
                       onClick={() => handleConfirmMeeting(suggestion.date, suggestion.time)}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                      className="bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700 text-white"
                       title="Confirm this meeting time"
                     >
                       <Star className="w-4 h-4" />
@@ -342,7 +359,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
                           "_blank",
                         )
                       }
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                      className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
                       title="Add to Google Calendar"
                     >
                       <CalendarIcon className="w-4 h-4" />
@@ -356,25 +373,25 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
       )}
 
       {/* Legend explaining what the colors mean - moved to top */}
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex items-center justify-between">
-          <span className="text-gray-700 font-semibold">Availability Intensity:</span>
+          <span className="text-gray-700 dark:text-gray-200 font-semibold">Availability Intensity:</span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-50 border-2 border-gray-200 rounded"></div>
-              <span className="text-sm text-gray-600">None</span>
+              <div className="w-6 h-6 bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-300">None</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-200 to-purple-300 border-2 border-blue-200 rounded"></div>
-              <span className="text-sm text-gray-600">Low</span>
+              <div className="w-6 h-6 bg-gradient-to-br from-blue-200 to-purple-300 dark:from-blue-300 dark:to-purple-400 border-2 border-blue-200 dark:border-blue-300 rounded"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Low</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 border-2 border-yellow-400 rounded"></div>
-              <span className="text-sm text-gray-600">Medium</span>
+              <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 dark:from-yellow-500 dark:to-orange-600 border-2 border-yellow-400 dark:border-yellow-500 rounded"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Medium</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-green-600 border-2 border-emerald-500 rounded"></div>
-              <span className="text-sm text-gray-600">High</span>
+              <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-green-600 dark:from-emerald-600 dark:to-green-700 border-2 border-emerald-500 dark:border-emerald-600 rounded"></div>
+              <span className="text-sm text-gray-600 dark:text-gray-300">High</span>
             </div>
           </div>
         </div>
@@ -388,10 +405,10 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
             <div className="flex">
               <div className="w-20 flex-shrink-0"></div>
               {dates.map((date) => (
-                <div key={date} className="w-24 text-center text-sm font-bold text-gray-700 p-2">
+                <div key={date} className="w-24 text-center text-sm font-bold text-gray-700 dark:text-gray-200 p-2">
                   {formatDate(date).split(" - ")[1]}
                   <br />
-                  <span className="text-xs text-gray-500">{formatDate(date).split(" - ")[0]}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(date).split(" - ")[0]}</span>
                 </div>
               ))}
             </div>
@@ -399,7 +416,9 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants, 
             {/* Rows for each time slot */}
             {timeSlots.map((time) => (
               <div key={time} className="flex items-center">
-                <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2 font-semibold">{formatTime(time)}</div>
+                <div className="w-20 flex-shrink-0 text-sm text-gray-600 dark:text-gray-300 pr-2 font-semibold">
+                  {formatTime(time)}
+                </div>
                 {dates.map((date) => {
                   const count = getAvailabilityCount(date, time)
                   const intensityColor = getIntensityColor(count)

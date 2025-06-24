@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Users, Calendar } from "lucide-react"
 
+// This defines what information we store about each test user
 interface TestUser {
   username: string
   password: string
@@ -17,6 +18,8 @@ interface TestUser {
   description: string
 }
 
+// These are our demo accounts that people can try out
+// They have pre-made events and schedules to show how the app works
 const testUsers: TestUser[] = [
   {
     username: "alice",
@@ -44,32 +47,39 @@ const testUsers: TestUser[] = [
   },
 ]
 
+// This is the main login page component
+// It lets users sign in, sign up, or try demo accounts
 export default function LoginPage() {
-  const router = useRouter()
+  const router = useRouter() // This helps us move between pages
+
+  // These variables store what the user types in the form
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
-  const [isLogin, setIsLogin] = useState(true)
+  const [email, setEmail] = useState("") // New: store user's email address
+  const [isLogin, setIsLogin] = useState(true) // true = login form, false = signup form
 
+  // This runs when the page first loads
+  // It sets up all the demo data so people can try the app
   useEffect(() => {
-    // Initialize test data if not already present
     initializeTestData()
   }, [])
 
+  // This function creates all the sample events and users for the demo
   const initializeTestData = () => {
-    // Check if test data already exists
+    // Check if we already set up the demo data
     if (localStorage.getItem("testDataInitialized")) return
 
-    // Create test users
+    // Create the demo user accounts with their passwords and email addresses
     const users = {
-      alice: { password: "demo123", name: "Alice Johnson" },
-      bob: { password: "demo123", name: "Bob Smith" },
-      carol: { password: "demo123", name: "Carol Davis" },
-      david: { password: "demo123", name: "David Wilson" },
+      alice: { password: "demo123", name: "Alice Johnson", email: "alice@example.com" },
+      bob: { password: "demo123", name: "Bob Smith", email: "bob@example.com" },
+      carol: { password: "demo123", name: "Carol Davis", email: "carol@example.com" },
+      david: { password: "demo123", name: "David Wilson", email: "david@example.com" },
     }
     localStorage.setItem("users", JSON.stringify(users))
 
-    // Create sample events
+    // Create some sample events that show how the app works
     const sampleEvents = [
       {
         id: "event_sample1",
@@ -83,6 +93,7 @@ export default function LoginPage() {
         participants: [
           {
             name: "Alice Johnson",
+            email: "alice@example.com",
             availability: {
               "2025-01-06_09:00": true,
               "2025-01-06_09:30": true,
@@ -96,6 +107,7 @@ export default function LoginPage() {
           },
           {
             name: "Bob Smith",
+            email: "bob@example.com",
             availability: {
               "2025-01-06_10:00": true,
               "2025-01-06_10:30": true,
@@ -109,6 +121,7 @@ export default function LoginPage() {
           },
           {
             name: "Carol Davis",
+            email: "carol@example.com",
             availability: {
               "2025-01-06_09:30": true,
               "2025-01-06_10:00": true,
@@ -137,6 +150,7 @@ export default function LoginPage() {
         participants: [
           {
             name: "David Wilson",
+            email: "david@example.com",
             availability: {
               "2025-01-10_15:00": true,
               "2025-01-10_15:30": true,
@@ -145,6 +159,7 @@ export default function LoginPage() {
           },
           {
             name: "Carol Davis",
+            email: "carol@example.com",
             availability: {
               "2025-01-10_14:30": true,
               "2025-01-10_15:00": true,
@@ -168,6 +183,7 @@ export default function LoginPage() {
         participants: [
           {
             name: "Bob Smith",
+            email: "bob@example.com",
             availability: {
               "2025-01-13_10:00": true,
               "2025-01-13_10:30": true,
@@ -181,6 +197,7 @@ export default function LoginPage() {
           },
           {
             name: "Alice Johnson",
+            email: "alice@example.com",
             availability: {
               "2025-01-13_11:00": true,
               "2025-01-13_11:30": true,
@@ -195,6 +212,7 @@ export default function LoginPage() {
           },
           {
             name: "David Wilson",
+            email: "david@example.com",
             availability: {
               "2025-01-14_13:30": true,
               "2025-01-14_14:00": true,
@@ -208,12 +226,12 @@ export default function LoginPage() {
       },
     ]
 
-    // Store sample events
+    // Save all the sample events to the browser's storage
     sampleEvents.forEach((event) => {
       localStorage.setItem(event.id, JSON.stringify(event))
     })
 
-    // Create user event associations
+    // Connect users to their events (who created what, who joined what)
     const userEvents = {
       alice: [
         { eventId: "sample1", role: "creator", participantName: "Alice Johnson" },
@@ -233,68 +251,87 @@ export default function LoginPage() {
       ],
     }
 
+    // Save the user-event connections
     Object.entries(userEvents).forEach(([username, events]) => {
       localStorage.setItem(`userEvents_${username}`, JSON.stringify(events))
     })
 
+    // Mark that we've set up all the demo data
     localStorage.setItem("testDataInitialized", "true")
   }
 
+  // This function runs when someone tries to log in
   const handleLogin = () => {
+    // Get all the user accounts from storage
     const users = JSON.parse(localStorage.getItem("users") || "{}")
 
+    // Check if the username and password match
     if (users[username] && users[username].password === password) {
+      // Save who is currently logged in
       localStorage.setItem(
         "currentUser",
         JSON.stringify({
           username,
           name: users[username].name,
+          email: users[username].email,
         }),
       )
+      // Go to the main page
       router.push("/")
     } else {
+      // Show error if login failed
       alert("Invalid username or password")
     }
   }
 
+  // This function runs when someone creates a new account
   const handleSignup = () => {
-    if (!username || !password || !name) {
+    // Make sure all fields are filled out
+    if (!username || !password || !name || !email) {
       alert("Please fill in all fields")
       return
     }
 
+    // Get existing users
     const users = JSON.parse(localStorage.getItem("users") || "{}")
 
+    // Check if username is already taken
     if (users[username]) {
       alert("Username already exists")
       return
     }
 
-    users[username] = { password, name }
+    // Add the new user
+    users[username] = { password, name, email }
     localStorage.setItem("users", JSON.stringify(users))
 
-    // Initialize empty user events
+    // Create empty event list for new user
     localStorage.setItem(`userEvents_${username}`, JSON.stringify([]))
 
-    localStorage.setItem("currentUser", JSON.stringify({ username, name }))
+    // Log them in automatically
+    localStorage.setItem("currentUser", JSON.stringify({ username, name, email }))
     router.push("/")
   }
 
+  // This function logs someone in as a demo user
   const handleTestLogin = (testUser: TestUser) => {
+    const users = JSON.parse(localStorage.getItem("users") || "{}")
     localStorage.setItem(
       "currentUser",
       JSON.stringify({
         username: testUser.username,
         name: testUser.name,
+        email: users[testUser.username]?.email || `${testUser.username}@example.com`,
       }),
     )
     router.push("/")
   }
 
+  // This is what shows up on the screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 flex items-center justify-center p-6">
       <div className="w-full max-w-4xl">
-        {/* Header */}
+        {/* App title and description */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center">
@@ -308,19 +345,21 @@ export default function LoginPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Login/Signup Form */}
+          {/* Login and Signup Forms */}
           <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-t-lg">
               <CardTitle className="text-xl">Account Access</CardTitle>
               <CardDescription className="text-violet-100">Sign in to your account or create a new one</CardDescription>
             </CardHeader>
             <CardContent className="p-6">
+              {/* Tabs to switch between login and signup */}
               <Tabs value={isLogin ? "login" : "signup"} onValueChange={(value) => setIsLogin(value === "login")}>
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="login">Sign In</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
                 </TabsList>
 
+                {/* Login form */}
                 <TabsContent value="login" className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
@@ -351,6 +390,7 @@ export default function LoginPage() {
                   </Button>
                 </TabsContent>
 
+                {/* Signup form */}
                 <TabsContent value="signup" className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-username">Username</Label>
@@ -369,6 +409,17 @@ export default function LoginPage() {
                       placeholder="Enter your full name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      className="border-gray-200 focus:border-violet-500 focus:ring-violet-500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email Address</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="border-gray-200 focus:border-violet-500 focus:ring-violet-500"
                     />
                   </div>
@@ -394,7 +445,7 @@ export default function LoginPage() {
             </CardContent>
           </Card>
 
-          {/* Test Accounts */}
+          {/* Demo Accounts Section */}
           <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-t-lg">
               <CardTitle className="text-xl flex items-center gap-2">
@@ -406,6 +457,7 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
+              {/* Show each demo user */}
               {testUsers.map((user) => (
                 <div key={user.username} className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
@@ -421,6 +473,7 @@ export default function LoginPage() {
                       Login as {user.name.split(" ")[0]}
                     </Button>
                   </div>
+                  {/* Show the login details */}
                   <div className="flex gap-2 text-xs">
                     <Badge variant="outline" className="border-gray-300 text-gray-600">
                       Username: {user.username}
@@ -432,6 +485,7 @@ export default function LoginPage() {
                 </div>
               ))}
 
+              {/* Information about what's included in the demo */}
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />

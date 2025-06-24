@@ -21,16 +21,21 @@ import {
   X,
   LogOut,
   User,
+  Lock,
+  Mail,
 } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { HeatMap } from "@/components/heat-map"
 import Link from "next/link"
 
+// This defines what information we store about each person in an event
 interface Participant {
   name: string
-  availability: Record<string, boolean>
+  email?: string // Optional email address for notifications
+  availability: Record<string, boolean> // Which time slots they're available
 }
 
+// This defines what information we store about each event
 interface EventData {
   title: string
   startDate: string
@@ -43,32 +48,45 @@ interface EventData {
   participants: Participant[]
 }
 
+// This defines the connection between users and events
 interface UserEventData {
   eventId: string
   role: "creator" | "participant"
   participantName?: string
 }
 
+// This defines what information we store about the current user
 interface CurrentUser {
   username: string
   name: string
+  email?: string
 }
 
+// This is the main event page component
+// It shows event details, participants, and the availability heat map
 export default function EventPage() {
   const params = useParams()
   const router = useRouter()
   const eventId = params.id as string
+
+  // These variables store the current state of the page
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [eventData, setEventData] = useState<EventData | null>(null)
   const [participantName, setParticipantName] = useState("")
+  const [participantEmail, setParticipantEmail] = useState("") // New: email for new participants
   const [availability, setAvailability] = useState<Record<string, boolean>>({})
   const [shareUrl, setShareUrl] = useState("")
   const [userRole, setUserRole] = useState<"creator" | "participant" | "none">("none")
   const [editingParticipant, setEditingParticipant] = useState<string | null>(null)
   const [editAvailability, setEditAvailability] = useState<Record<string, boolean>>({})
 
+  // List of demo account usernames (these accounts can't edit)
+  const demoAccounts = ["alice", "bob", "carol", "david"]
+  const isDemoAccount = currentUser ? demoAccounts.includes(currentUser.username) : false
+
+  // This runs when the page first loads
   useEffect(() => {
-    // Check if user is logged in
+    // Check if someone is logged in
     const userData = localStorage.getItem("currentUser")
     if (!userData) {
       router.push("/login")
@@ -78,13 +96,13 @@ export default function EventPage() {
     const user = JSON.parse(userData)
     setCurrentUser(user)
 
-    // Load event data from localStorage
+    // Load event data from storage
     const storedData = localStorage.getItem(`event_${eventId}`)
     if (storedData) {
       setEventData(JSON.parse(storedData))
     }
 
-    // Check user's role in this event
+    // Check what role the user has in this event
     const userEventsData = localStorage.getItem(`userEvents_${user.username}`)
     const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
     const userEvent = userEventsList.find((ue) => ue.eventId === eventId)
@@ -93,15 +111,17 @@ export default function EventPage() {
       setUserRole(userEvent.role)
     }
 
-    // Set share URL
+    // Set the URL for sharing this event
     setShareUrl(window.location.href)
   }, [eventId, router])
 
+  // This function logs the user out
   const handleLogout = () => {
     localStorage.removeItem("currentUser")
     router.push("/login")
   }
 
+  // This function converts 12-hour time to 24-hour time
   const convertTo24Hour = (time12h: string) => {
     const [time, modifier] = time12h.split(" ")
     let [hours, minutes] = time.split(":")
@@ -114,7 +134,24 @@ export default function EventPage() {
     return `${hours}:${minutes}`
   }
 
+  // This function simulates sending email notifications to participants
+  const sendEmailNotifications = (eventData: EventData, newParticipant?: Participant) => {
+    // In a real app, this would send actual emails
+    // For now, we just show a message
+    const recipients = eventData.participants
+      .filter((p) => p.email)
+      .map((p) => p.email)
+      .join(", ")
+
+    if (recipients) {
+      console.log(`📧 Email notifications sent to: ${recipients}`)
+      alert(`📧 Email notifications sent to all participants with email addresses!`)
+    }
+  }
+
+  // This function adds a new person to the event
   const handleJoinEvent = () => {
+    // Make sure name is filled out
     if (!participantName.trim()) {
       alert("Please enter your name")
       return
@@ -122,21 +159,24 @@ export default function EventPage() {
 
     if (!eventData || !currentUser) return
 
-    const updatedEventData = {
-      ...eventData,
-      participants: [
-        ...eventData.participants,
-        {
-          name: participantName,
-          availability,
-        },
-      ],
+    // Create the new participant
+    const newParticipant = {
+      name: participantName,
+      email: participantEmail || undefined,
+      availability,
     }
 
+    // Add them to the event
+    const updatedEventData = {
+      ...eventData,
+      participants: [...eventData.participants, newParticipant],
+    }
+
+    // Save the updated event
     localStorage.setItem(`event_${eventId}`, JSON.stringify(updatedEventData))
     setEventData(updatedEventData)
 
-    // Update user events
+    // Connect the user to this event
     const userEventsData = localStorage.getItem(`userEvents_${currentUser.username}`)
     const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
     userEventsList.push({
@@ -146,11 +186,17 @@ export default function EventPage() {
     })
     localStorage.setItem(`userEvents_${currentUser.username}`, JSON.stringify(userEventsList))
 
+    // Send email notifications
+    sendEmailNotifications(updatedEventData, newParticipant)
+
+    // Update the page state
     setUserRole("participant")
     setParticipantName("")
+    setParticipantEmail("")
     setAvailability({})
   }
 
+  // This function starts editing someone's availability
   const handleEditAvailability = (participantName: string) => {
     if (!eventData) return
 
@@ -161,6 +207,7 @@ export default function EventPage() {
     }
   }
 
+  // This function saves changes to someone's availability
   const handleSaveEdit = () => {
     if (!eventData || !editingParticipant) return
 
@@ -175,22 +222,30 @@ export default function EventPage() {
     setEventData(updatedEventData)
     setEditingParticipant(null)
     setEditAvailability({})
+
+    // Send email notifications about the update
+    sendEmailNotifications(updatedEventData)
   }
 
+  // This function cancels editing availability
   const handleCancelEdit = () => {
     setEditingParticipant(null)
     setEditAvailability({})
   }
 
+  // This function copies the event URL to clipboard
   const copyShareUrl = () => {
     navigator.clipboard.writeText(shareUrl)
     alert("Link copied to clipboard! 🎉")
   }
 
+  // This function checks if someone can edit a participant's availability
   const canEditParticipant = (participantName: string) => {
+    if (isDemoAccount) return false // Demo accounts can't edit anything
     return userRole === "creator" || (userRole === "participant" && participantName === currentUser?.name)
   }
 
+  // This function formats date ranges to look nice
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate)
     const end = new Date(endDate)
@@ -237,6 +292,7 @@ export default function EventPage() {
     return `${dateRange}\n${dayRange}`
   }
 
+  // This function formats times to look nice
   const formatTime = (time24: string) => {
     const [hours, minutes] = time24.split(":")
     const hour = Number.parseInt(hours, 10)
@@ -245,10 +301,12 @@ export default function EventPage() {
     return `${hour12}:${minutes} ${ampm}`
   }
 
+  // Show loading message while checking login
   if (!currentUser) {
     return <div>Loading...</div>
   }
 
+  // Show error message if event doesn't exist
   if (!eventData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 flex items-center justify-center">
@@ -273,10 +331,11 @@ export default function EventPage() {
 
   const isUserParticipant = eventData.participants.some((p) => p.name === currentUser.name)
 
+  // This is what shows up on the screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50">
       <div className="max-w-6xl mx-auto p-6">
-        {/* Header */}
+        {/* Header section */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link href="/">
@@ -295,10 +354,17 @@ export default function EventPage() {
             </div>
           </div>
 
+          {/* User info and logout */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
               <User className="w-4 h-4 text-violet-600" />
               <span className="font-medium text-gray-700">{currentUser.name}</span>
+              {isDemoAccount && (
+                <Badge className="bg-orange-100 text-orange-700 border-0 text-xs flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Demo
+                </Badge>
+              )}
             </div>
             <Button
               onClick={handleLogout}
@@ -338,6 +404,7 @@ export default function EventPage() {
             </div>
           )}
 
+          {/* Event Details */}
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex items-start gap-3">
@@ -377,6 +444,7 @@ export default function EventPage() {
               </div>
             </div>
 
+            {/* Creator and Participant Info */}
             <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Created by</span>
@@ -399,15 +467,26 @@ export default function EventPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Join Event and Share Buttons */}
               <div className="flex gap-2">
-                {userRole === "none" && !isUserParticipant && (
+                {userRole === "none" && !isUserParticipant && !isDemoAccount && (
                   <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Enter your name"
-                      value={participantName}
-                      onChange={(e) => setParticipantName(e.target.value)}
-                      className="w-40 h-9 border-gray-200 focus:border-violet-500 focus:ring-violet-500"
-                    />
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Enter your name"
+                        value={participantName}
+                        onChange={(e) => setParticipantName(e.target.value)}
+                        className="w-40 h-9 border-gray-200 focus:border-violet-500 focus:ring-violet-500"
+                      />
+                      <Input
+                        placeholder="Email (optional)"
+                        type="email"
+                        value={participantEmail}
+                        onChange={(e) => setParticipantEmail(e.target.value)}
+                        className="w-40 h-9 border-gray-200 focus:border-violet-500 focus:ring-violet-500"
+                      />
+                    </div>
                     <Button
                       onClick={handleJoinEvent}
                       size="sm"
@@ -418,6 +497,15 @@ export default function EventPage() {
                     </Button>
                   </div>
                 )}
+
+                {/* Demo account message */}
+                {userRole === "none" && !isUserParticipant && isDemoAccount && (
+                  <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                    <Lock className="w-4 h-4" />
+                    <span className="text-sm font-medium">Demo Mode - Cannot Join</span>
+                  </div>
+                )}
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -442,7 +530,9 @@ export default function EventPage() {
                 Participants & Availability
               </CardTitle>
               <CardDescription className="text-blue-100">
-                Manage participant availability - creators can edit anyone, participants can edit their own
+                {isDemoAccount
+                  ? "View participant availability (editing disabled in demo mode)"
+                  : "Manage participant availability - creators can edit anyone, participants can edit their own"}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
@@ -467,9 +557,16 @@ export default function EventPage() {
                           {participant.name === currentUser.name && (
                             <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">You</Badge>
                           )}
+                          {participant.email && (
+                            <Badge className="bg-green-100 text-green-700 border-0 text-xs flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              Email
+                            </Badge>
+                          )}
                         </p>
                         <p className="text-sm text-gray-600">
                           {Object.values(participant.availability).filter(Boolean).length} time slots selected
+                          {participant.email && <span className="text-green-600 ml-2">• {participant.email}</span>}
                         </p>
                       </div>
                     </div>
@@ -484,6 +581,12 @@ export default function EventPage() {
                         Edit Availability
                       </Button>
                     )}
+                    {isDemoAccount && (
+                      <div className="flex items-center gap-2 text-orange-600">
+                        <Lock className="w-4 h-4" />
+                        <span className="text-sm">Demo Mode</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -492,7 +595,7 @@ export default function EventPage() {
         )}
 
         {/* Edit Availability Modal */}
-        {editingParticipant && (
+        {editingParticipant && !isDemoAccount && (
           <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-t-lg">
               <CardTitle className="text-xl">Edit Availability for {editingParticipant}</CardTitle>

@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, Users, Plus, Sparkles, Crown, UserCheck, LogOut, User } from "lucide-react"
+import { Calendar, Clock, Users, Plus, Sparkles, Crown, UserCheck, LogOut, User, Lock } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { CoverImageSelector } from "@/components/cover-image-selector"
 
+// This defines what information we store about each event
 interface EventData {
   id: string
   title: string
@@ -23,24 +24,32 @@ interface EventData {
   coverImageAttribution?: string
   participants: Array<{
     name: string
+    email?: string
     availability: Record<string, boolean>
   }>
   createdAt: string
 }
 
+// This defines the connection between users and events
 interface UserEventData {
   eventId: string
   role: "creator" | "participant"
   participantName?: string
 }
 
+// This defines what information we store about the current user
 interface CurrentUser {
   username: string
   name: string
+  email?: string
 }
 
+// This is the main home page component
+// It shows all events and lets users create new ones
 export default function HomePage() {
-  const router = useRouter()
+  const router = useRouter() // This helps us move between pages
+
+  // These variables store the current state of the page
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [eventTitle, setEventTitle] = useState("")
   const [startDate, setStartDate] = useState("")
@@ -54,23 +63,30 @@ export default function HomePage() {
   const [userEvents, setUserEvents] = useState<UserEventData[]>([])
   const [showCreateForm, setShowCreateForm] = useState(false)
 
+  // List of demo account usernames (these accounts can't create or edit)
+  const demoAccounts = ["alice", "bob", "carol", "david"]
+
+  // Check if the current user is a demo account
+  const isDemoAccount = currentUser ? demoAccounts.includes(currentUser.username) : false
+
+  // This runs when the page first loads
   useEffect(() => {
-    // Check if user is logged in
+    // Check if someone is logged in
     const userData = localStorage.getItem("currentUser")
     if (!userData) {
-      router.push("/login")
+      router.push("/login") // Send them to login page if not logged in
       return
     }
 
     const user = JSON.parse(userData)
     setCurrentUser(user)
 
-    // Load user's events from localStorage
+    // Load the user's events from storage
     const userEventsData = localStorage.getItem(`userEvents_${user.username}`)
     const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
     setUserEvents(userEventsList)
 
-    // Load existing events from localStorage
+    // Load all events from storage
     const events: EventData[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
@@ -85,20 +101,22 @@ export default function HomePage() {
       }
     }
 
-    // Filter events to only show ones the user is involved in
+    // Only show events the user is involved in
     const userEventIds = userEventsList.map((ue) => ue.eventId)
     const filteredEvents = events.filter((event) => userEventIds.includes(event.id))
 
-    // Sort by creation date (newest first)
+    // Sort events by creation date (newest first)
     filteredEvents.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     setExistingEvents(filteredEvents)
   }, [router])
 
+  // This function logs the user out
   const handleLogout = () => {
     localStorage.removeItem("currentUser")
     router.push("/login")
   }
 
+  // This function converts 12-hour time (like "2:00 PM") to 24-hour time (like "14:00")
   const convertTo24Hour = (time12h: string) => {
     const [time, modifier] = time12h.split(" ")
     let [hours, minutes] = time.split(":")
@@ -111,17 +129,21 @@ export default function HomePage() {
     return `${hours}:${minutes}`
   }
 
+  // This function handles when someone selects a cover image
   const handleCoverImageChange = (imageUrl: string, attribution?: string) => {
     setCoverImage(imageUrl)
     setCoverImageAttribution(attribution || "")
   }
 
+  // This function creates a new event
   const handleCreateEvent = () => {
+    // Make sure all required fields are filled out
     if (!eventTitle || !startDate || !endDate || !currentUser) {
       alert("Please fill in all required fields")
       return
     }
 
+    // Create the event data
     const eventData = {
       title: eventTitle,
       startDate,
@@ -134,19 +156,20 @@ export default function HomePage() {
       participants: [
         {
           name: currentUser.name,
+          email: currentUser.email,
           availability,
         },
       ],
       createdAt: new Date().toISOString(),
     }
 
-    // Generate a simple ID (in a real app, this would be more robust)
+    // Create a unique ID for the event
     const eventId = Math.random().toString(36).substring(2, 15)
 
-    // Store in localStorage (in a real app, this would be a database)
+    // Save the event to storage
     localStorage.setItem(`event_${eventId}`, JSON.stringify(eventData))
 
-    // Update user events
+    // Connect the user to this event
     const userEventsData = localStorage.getItem(`userEvents_${currentUser.username}`)
     const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
     userEventsList.push({
@@ -156,9 +179,11 @@ export default function HomePage() {
     })
     localStorage.setItem(`userEvents_${currentUser.username}`, JSON.stringify(userEventsList))
 
+    // Go to the event page
     router.push(`/event/${eventId}`)
   }
 
+  // This function formats date ranges to look nice
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate)
     const end = new Date(endDate)
@@ -205,6 +230,7 @@ export default function HomePage() {
     return `${dateRange}\n${dayRange}`
   }
 
+  // This function formats times to look nice (converts 24-hour to 12-hour)
   const formatTime = (time24: string) => {
     const [hours, minutes] = time24.split(":")
     const hour = Number.parseInt(hours, 10)
@@ -213,6 +239,7 @@ export default function HomePage() {
     return `${hour12}:${minutes} ${ampm}`
   }
 
+  // This function determines what status badge to show for each event
   const getEventStatus = (event: EventData) => {
     const now = new Date()
     const endDate = new Date(event.endDate)
@@ -228,19 +255,22 @@ export default function HomePage() {
     return { label: "Active", color: "bg-emerald-100 text-emerald-700" }
   }
 
+  // This function determines if the user created or joined an event
   const getUserRole = (eventId: string) => {
     const userEvent = userEvents.find((ue) => ue.eventId === eventId)
     return userEvent?.role || "participant"
   }
 
+  // Show loading message while we check if user is logged in
   if (!currentUser) {
     return <div>Loading...</div>
   }
 
+  // This is what shows up on the screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
+        {/* Header section with app title and user info */}
         <div className="flex items-center justify-between mb-12">
           <div className="text-center flex-1">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -254,10 +284,17 @@ export default function HomePage() {
             <p className="text-xl text-gray-600 font-medium">Find the perfect time when everyone's available</p>
           </div>
 
+          {/* User info and logout button */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
               <User className="w-4 h-4 text-violet-600" />
               <span className="font-medium text-gray-700">{currentUser.name}</span>
+              {isDemoAccount && (
+                <Badge className="bg-orange-100 text-orange-700 border-0 text-xs flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Demo
+                </Badge>
+              )}
             </div>
             <Button
               onClick={handleLogout}
@@ -271,20 +308,31 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Events Dashboard */}
+        {/* Events Dashboard - shows all the user's events */}
         {existingEvents.length > 0 && (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Your Events</h2>
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Event
-              </Button>
+              {/* Only show "New Event" button for non-demo accounts */}
+              {!isDemoAccount && (
+                <Button
+                  onClick={() => setShowCreateForm(true)}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-lg"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Event
+                </Button>
+              )}
+              {/* Show locked message for demo accounts */}
+              {isDemoAccount && (
+                <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-lg border border-orange-200">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-sm font-medium">Demo Mode - Creation Disabled</span>
+                </div>
+              )}
             </div>
 
+            {/* Grid of event cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {existingEvents.map((event) => {
                 const status = getEventStatus(event)
@@ -299,6 +347,7 @@ export default function HomePage() {
                     }`}
                     onClick={() => router.push(`/event/${event.id}`)}
                   >
+                    {/* Event cover image */}
                     <div className="relative">
                       {event.coverImage ? (
                         <div
@@ -310,6 +359,7 @@ export default function HomePage() {
                           <Calendar className="w-8 h-8 text-white/80" />
                         </div>
                       )}
+                      {/* Badges showing user role and event status */}
                       <div className="absolute top-3 right-3 flex gap-2">
                         {isCreator && (
                           <Badge className="bg-violet-500 text-white border-0 font-medium flex items-center gap-1">
@@ -327,6 +377,7 @@ export default function HomePage() {
                       </div>
                     </div>
 
+                    {/* Event details */}
                     <CardContent className="p-4">
                       <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-violet-600 transition-colors">
                         {event.title}
@@ -366,8 +417,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Create New Event Button (when no events exist) */}
-        {existingEvents.length === 0 && !showCreateForm && (
+        {/* Create New Event Button (when no events exist and not demo account) */}
+        {existingEvents.length === 0 && !showCreateForm && !isDemoAccount && (
           <div className="text-center mb-12">
             <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-12 border border-white/20 shadow-xl">
               <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -389,8 +440,24 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Create Event Form */}
-        {showCreateForm && (
+        {/* Demo account message when no events */}
+        {existingEvents.length === 0 && isDemoAccount && (
+          <div className="text-center mb-12">
+            <div className="bg-orange-50 border border-orange-200 rounded-3xl p-12">
+              <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Lock className="w-10 h-10 text-orange-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-orange-900 mb-4">Demo Account</h3>
+              <p className="text-orange-700 mb-8 max-w-md mx-auto">
+                This is a demo account for testing purposes. Event creation and editing are disabled. Try logging in
+                with a different demo account to see sample events.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Create Event Form (only shown for non-demo accounts) */}
+        {showCreateForm && !isDemoAccount && (
           <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-2 text-xl">
@@ -408,6 +475,7 @@ export default function HomePage() {
                 <CoverImageSelector value={coverImage} onChange={handleCoverImageChange} />
               </div>
 
+              {/* Event Title Input */}
               <div className="space-y-2">
                 <Label htmlFor="eventTitle" className="text-sm font-semibold text-gray-700">
                   Event Title *
@@ -421,6 +489,7 @@ export default function HomePage() {
                 />
               </div>
 
+              {/* Date Selection */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="startDate" className="text-sm font-semibold text-gray-700">
@@ -448,6 +517,7 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {/* Time Selection */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="startTime" className="text-sm font-semibold text-gray-700">
@@ -495,6 +565,7 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {/* Availability Selector (only show if dates are selected) */}
               {startDate && endDate && (
                 <div className="space-y-4">
                   <Label className="text-sm font-semibold text-gray-700">Your Availability</Label>
@@ -511,6 +582,7 @@ export default function HomePage() {
                 </div>
               )}
 
+              {/* Form Buttons */}
               <div className="flex gap-3 pt-4">
                 <Button
                   variant="outline"

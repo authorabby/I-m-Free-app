@@ -1,29 +1,37 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, CalendarIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
+// This defines what information we need about each person
 interface Participant {
   name: string
-  availability: Record<string, boolean>
+  email?: string // Optional email address
+  availability: Record<string, boolean> // Which time slots they're free
 }
 
+// This defines what information the heat map component needs
 interface HeatMapProps {
-  startDate: string
-  endDate: string
-  startTime: string
-  endTime: string
-  participants: Participant[]
+  startDate: string // When the event starts (like "2025-01-06")
+  endDate: string // When the event ends
+  startTime: string // What time each day starts (like "09:00")
+  endTime: string // What time each day ends (like "17:00")
+  participants: Participant[] // List of all people in the event
 }
 
+// This component shows a colorful grid that helps find the best meeting times
+// Green = everyone is free, yellow/orange = some people are free, gray = nobody is free
 export function HeatMap({ startDate, endDate, startTime, endTime, participants }: HeatMapProps) {
-  const [timeSlots, setTimeSlots] = useState<string[]>([])
-  const [dates, setDates] = useState<string[]>([])
-  const [bestTimes, setBestTimes] = useState<Array<{ date: string; time: string; count: number }>>([])
-  const [partialMatches, setPartialMatches] = useState<Array<{ date: string; time: string; count: number }>>([])
-  const [showPartialMatches, setShowPartialMatches] = useState(false)
+  // These variables store information we calculate
+  const [timeSlots, setTimeSlots] = useState<string[]>([]) // All the time slots (like 9:00, 9:30, 10:00)
+  const [dates, setDates] = useState<string[]>([]) // All the dates in the event
+  const [bestTimes, setBestTimes] = useState<Array<{ date: string; time: string; count: number }>>([]) // Times when everyone is free
+  const [partialMatches, setPartialMatches] = useState<Array<{ date: string; time: string; count: number }>>([]) // Times when some people are free
+  const [showPartialMatches, setShowPartialMatches] = useState(false) // Whether to show the "other matches" section
+
+  // This stores information about the tooltip (the little popup when you hover over a number)
   const [tooltip, setTooltip] = useState<{ show: boolean; x: number; y: number; content: string }>({
     show: false,
     x: 0,
@@ -31,43 +39,73 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     content: "",
   })
 
+  // This function picks the right color based on how many people are available
   const getAvailabilityColor = (count: number, total: number) => {
-    if (count === 0) return "bg-gray-100 text-gray-600"
+    if (count === 0) return "bg-gray-100 text-gray-600" // Nobody available = gray
 
-    const intensity = count / total
+    const intensity = count / total // What percentage of people are free
 
-    if (intensity === 1) return "bg-emerald-500 text-white"
-    if (intensity >= 0.8) return "bg-emerald-400 text-white"
-    if (intensity >= 0.6) return "bg-yellow-500 text-white"
-    if (intensity >= 0.4) return "bg-orange-400 text-white"
-    if (intensity >= 0.2) return "bg-blue-400 text-white"
-    return "bg-blue-300 text-gray-700"
+    if (intensity === 1) return "bg-emerald-500 text-white" // Everyone free = green
+    if (intensity >= 0.8) return "bg-emerald-400 text-white" // Most people free = light green
+    if (intensity >= 0.6) return "bg-yellow-500 text-white" // More than half free = yellow
+    if (intensity >= 0.4) return "bg-orange-400 text-white" // Some people free = orange
+    if (intensity >= 0.2) return "bg-blue-400 text-white" // Few people free = blue
+    return "bg-blue-300 text-gray-700" // Very few people free = light blue
   }
 
+  // This function finds out who is available at a specific time
   const getAvailableParticipants = (date: string, time: string) => {
-    const key = `${date}_${time}`
-    return participants.filter((p) => p.availability[key]).map((p) => p.name)
+    const key = `${date}_${time}` // Create a unique key for this time slot
+    return participants.filter((p) => p.availability[key]).map((p) => p.name) // Get names of available people
   }
 
+  // This function shows a tooltip when you hover over a number in the grid
   const handleMouseEnter = (event: React.MouseEvent, date: string, time: string) => {
     const availableNames = getAvailableParticipants(date, time)
     if (availableNames.length > 0) {
       const rect = event.currentTarget.getBoundingClientRect()
       setTooltip({
         show: true,
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10,
-        content: availableNames.join(", "),
+        x: rect.left + rect.width / 2, // Position tooltip in center of the cell
+        y: rect.top - 10, // Position tooltip above the cell
+        content: availableNames.join(", "), // Show all available people's names
       })
     }
   }
 
+  // This function hides the tooltip when you stop hovering
   const handleMouseLeave = () => {
     setTooltip({ show: false, x: 0, y: 0, content: "" })
   }
 
+  // This function creates a Google Calendar link for a specific time slot
+  const createGoogleCalendarLink = (date: string, time: string, eventTitle = "Meeting") => {
+    // Convert our date and time into the format Google Calendar expects
+    const startDateTime = new Date(`${date}T${time}:00`)
+    const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000) // Add 1 hour
+
+    // Format dates for Google Calendar (YYYYMMDDTHHMMSSZ)
+    const formatForGoogle = (date: Date) => {
+      return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
+    }
+
+    const startFormatted = formatForGoogle(startDateTime)
+    const endFormatted = formatForGoogle(endDateTime)
+
+    // Get list of available participants for the event description
+    const availableParticipants = getAvailableParticipants(date, time)
+    const description = `Meeting with: ${availableParticipants.join(", ")}`
+
+    // Create the Google Calendar URL
+    const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${startFormatted}/${endFormatted}&details=${encodeURIComponent(description)}`
+
+    return googleCalendarUrl
+  }
+
+  // This runs when the component first loads or when the dates/times change
+  // It calculates all the time slots and finds the best meeting times
   useEffect(() => {
-    // Generate date range
+    // Create a list of all dates in the event
     const start = new Date(startDate)
     const end = new Date(endDate)
     const dateArray: string[] = []
@@ -77,7 +115,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     }
     setDates(dateArray)
 
-    // Generate time slots (30-minute intervals)
+    // Create a list of all time slots (every 30 minutes)
     const startHour = Number.parseInt(startTime.split(":")[0])
     const startMinute = Number.parseInt(startTime.split(":")[1])
     const endHour = Number.parseInt(endTime.split(":")[0])
@@ -87,6 +125,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     let currentHour = startHour
     let currentMinute = startMinute
 
+    // Keep adding 30-minute slots until we reach the end time
     while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
       const timeString = `${currentHour.toString().padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}`
       slots.push(timeString)
@@ -99,7 +138,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     }
     setTimeSlots(slots)
 
-    // Calculate best times
+    // Count how many people are available for each time slot
     const timeSlotCounts: Array<{ date: string; time: string; count: number }> = []
 
     dateArray.forEach((date) => {
@@ -112,11 +151,11 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
       })
     })
 
-    // In the useEffect, separate perfect matches from partial matches
+    // Separate perfect matches (everyone available) from partial matches (some people available)
     const perfectMatches = timeSlotCounts.filter((slot) => slot.count === participants.length)
     const partialMatchesData = timeSlotCounts.filter((slot) => slot.count < participants.length && slot.count > 0)
 
-    // Sort both arrays by count (descending)
+    // Sort both lists by how many people are available (most first)
     const sortedPerfectMatches = perfectMatches.sort((a, b) => b.count - a.count)
     const sortedPartialMatches = partialMatchesData.sort((a, b) => b.count - a.count).slice(0, 10)
 
@@ -124,18 +163,20 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     setPartialMatches(sortedPartialMatches)
   }, [startDate, endDate, startTime, endTime, participants])
 
+  // This function counts how many people are available at a specific time
   const getAvailabilityCount = (date: string, time: string) => {
     const key = `${date}_${time}`
     return participants.filter((p) => p.availability[key]).length
   }
 
+  // This function picks the right background color for each cell in the grid
   const getIntensityColor = (count: number) => {
     const maxCount = participants.length
     if (count === 0) return "bg-gray-50 border-gray-200"
 
     const intensity = count / maxCount
 
-    // More vibrant color progression
+    // Use gradients to make it look nice
     if (intensity === 1) return "bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-500 shadow-lg"
     if (intensity >= 0.8) return "bg-gradient-to-br from-emerald-400 to-green-500 border-emerald-400 shadow-md"
     if (intensity >= 0.6) return "bg-gradient-to-br from-yellow-400 to-orange-500 border-yellow-400 shadow-md"
@@ -144,12 +185,14 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     return "bg-gradient-to-br from-blue-200 to-purple-300 border-blue-200"
   }
 
+  // This function picks the right text color for each cell
   const getTextColor = (count: number) => {
     const maxCount = participants.length
     const intensity = count / maxCount
     return intensity >= 0.4 ? "text-white font-bold" : "text-gray-700 font-semibold"
   }
 
+  // This function formats dates to look nice (like "January 6, 2025 - Monday")
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date
@@ -162,6 +205,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
       .replace(/(\w+), (\w+ \d+, \d+)/, "$2 - $1")
   }
 
+  // This function formats times to look nice (like "9:00 AM")
   const formatTime = (time24: string) => {
     const [hours, minutes] = time24.split(":")
     const hour = Number.parseInt(hours, 10)
@@ -170,13 +214,15 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
     return `${hour12}:${minutes} ${ampm}`
   }
 
+  // This function combines date and time for display
   const formatDateTime = (date: string, time: string) => {
     return `${formatDate(date)} at ${formatTime(time)}`
   }
 
+  // This is what shows up on the screen
   return (
     <div className="space-y-6 relative">
-      {/* Tooltip */}
+      {/* Tooltip - the little popup that shows who's available */}
       {tooltip.show && (
         <div
           className="fixed z-50 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg pointer-events-none transform -translate-x-1/2 -translate-y-full"
@@ -191,7 +237,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
         </div>
       )}
 
-      {/* Perfect Time Matches - Only 100% availability */}
+      {/* Perfect Time Matches - times when everyone is available */}
       {bestTimes.length > 0 && (
         <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6">
           <h3 className="font-bold text-emerald-800 mb-4 text-lg flex items-center gap-2">✨ Perfect Time Matches</h3>
@@ -206,6 +252,16 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
                   >
                     {suggestion.count}/{participants.length} available
                   </span>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      window.open(createGoogleCalendarLink(suggestion.date, suggestion.time, "Team Meeting"), "_blank")
+                    }
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    <CalendarIcon className="w-4 h-4 mr-1" />
+                    Add to Calendar
+                  </Button>
                   <span className="text-emerald-600">✨</span>
                 </div>
               </div>
@@ -214,7 +270,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
         </div>
       )}
 
-      {/* Partial Matches - Collapsible */}
+      {/* Partial Matches - times when some people are available (can be hidden/shown) */}
       {partialMatches.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
           <button
@@ -238,6 +294,19 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
                     >
                       {suggestion.count}/{participants.length} available
                     </span>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        window.open(
+                          createGoogleCalendarLink(suggestion.date, suggestion.time, "Team Meeting"),
+                          "_blank",
+                        )
+                      }
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      <CalendarIcon className="w-4 h-4 mr-1" />
+                      Add to Calendar
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -246,11 +315,11 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
         </div>
       )}
 
-      {/* Heat Map Grid */}
+      {/* Heat Map Grid - the colorful grid showing all time slots */}
       <div className="overflow-x-auto">
         <div className="min-w-max">
           <div className="grid grid-cols-1 gap-3">
-            {/* Header */}
+            {/* Header row showing all the dates */}
             <div className="flex">
               <div className="w-20 flex-shrink-0"></div>
               {dates.map((date) => (
@@ -262,7 +331,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
               ))}
             </div>
 
-            {/* Time slots */}
+            {/* Rows for each time slot */}
             {timeSlots.map((time) => (
               <div key={time} className="flex items-center">
                 <div className="w-20 flex-shrink-0 text-sm text-gray-600 pr-2 font-semibold">{formatTime(time)}</div>
@@ -287,7 +356,7 @@ export function HeatMap({ startDate, endDate, startTime, endTime, participants }
         </div>
       </div>
 
-      {/* Enhanced Legend */}
+      {/* Legend explaining what the colors mean */}
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-gray-700 font-semibold">Availability Intensity:</span>

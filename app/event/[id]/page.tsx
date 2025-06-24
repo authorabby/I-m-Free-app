@@ -3,8 +3,27 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, Clock, Sparkles, ArrowLeft, LogOut, User } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Calendar,
+  Clock,
+  Users,
+  Share2,
+  Copy,
+  Sparkles,
+  ArrowLeft,
+  Crown,
+  UserCheck,
+  Edit2,
+  Check,
+  X,
+  LogOut,
+  User,
+} from "lucide-react"
+import { AvailabilitySelector } from "@/components/availability-selector"
+import { HeatMap } from "@/components/heat-map"
 import Link from "next/link"
 
 interface Participant {
@@ -335,4 +354,207 @@ export default function EventPage() {
 
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Clock className\
+                  <Clock className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Time Range</p>
+                  <p className="font-semibold text-gray-900">
+                    {formatTime(eventData.startTime)} - {formatTime(eventData.endTime)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-pink-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Participants</p>
+                  <p className="font-semibold text-gray-900">
+                    {eventData.participants.length} participant{eventData.participants.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Created by</span>
+                <Badge variant="secondary" className="bg-violet-100 text-violet-700 border-0 flex items-center gap-1">
+                  <Crown className="w-3 h-3" />
+                  {eventData.creator}
+                  {userRole === "creator" && " (You)"}
+                </Badge>
+                <div className="flex gap-1 ml-2">
+                  {eventData.participants.slice(1).map((participant, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="border-gray-200 text-gray-600 flex items-center gap-1"
+                    >
+                      <UserCheck className="w-3 h-3" />
+                      {participant.name}
+                      {participant.name === currentUser.name && " (You)"}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {userRole === "none" && !isUserParticipant && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Enter your name"
+                      value={participantName}
+                      onChange={(e) => setParticipantName(e.target.value)}
+                      className="w-40 h-9 border-gray-200 focus:border-violet-500 focus:ring-violet-500"
+                    />
+                    <Button
+                      onClick={handleJoinEvent}
+                      size="sm"
+                      className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Join Event
+                    </Button>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyShareUrl}
+                  className="border-violet-200 text-violet-600 hover:bg-violet-50"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Link
+                  <Copy className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Participants List with Edit Options */}
+        {eventData.participants.length > 0 && (
+          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Users className="w-5 h-5" />
+                Participants & Availability
+              </CardTitle>
+              <CardDescription className="text-blue-100">
+                Manage participant availability - creators can edit anyone, participants can edit their own
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {eventData.participants.map((participant, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full flex items-center justify-center">
+                        <span className="font-semibold text-violet-600">
+                          {participant.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 flex items-center gap-2">
+                          {participant.name}
+                          {participant.name === eventData.creator && (
+                            <Badge className="bg-violet-100 text-violet-700 border-0 text-xs flex items-center gap-1">
+                              <Crown className="w-3 h-3" />
+                              Creator
+                            </Badge>
+                          )}
+                          {participant.name === currentUser.name && (
+                            <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">You</Badge>
+                          )}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {Object.values(participant.availability).filter(Boolean).length} time slots selected
+                        </p>
+                      </div>
+                    </div>
+                    {canEditParticipant(participant.name) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditAvailability(participant.name)}
+                        className="border-violet-200 text-violet-600 hover:bg-violet-50"
+                      >
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Edit Availability
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Edit Availability Modal */}
+        {editingParticipant && (
+          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-t-lg">
+              <CardTitle className="text-xl">Edit Availability for {editingParticipant}</CardTitle>
+              <CardDescription className="text-orange-100">
+                Update the availability using click and drag
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <AvailabilitySelector
+                  startDate={eventData.startDate}
+                  endDate={eventData.endDate}
+                  startTime={eventData.startTime}
+                  endTime={eventData.endTime}
+                  availability={editAvailability}
+                  onAvailabilityChange={setEditAvailability}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg flex-1"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Save Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Heat Map */}
+        {eventData.participants.length > 0 && !editingParticipant && (
+          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Clock className="w-5 h-5" />
+                Availability Heat Map
+              </CardTitle>
+              <CardDescription className="text-emerald-100">Discover when everyone is free</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <HeatMap
+                startDate={eventData.startDate}
+                endDate={eventData.endDate}
+                startTime={eventData.startTime}
+                endTime={eventData.endTime}
+                participants={eventData.participants}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -20,6 +20,7 @@ interface UnsplashPhoto {
   links: {
     html: string
   }
+  keywords?: string[]
 }
 
 interface UnsplashImageSelectorProps {
@@ -27,9 +28,9 @@ interface UnsplashImageSelectorProps {
   onChange: (value: string, attribution?: string) => void
 }
 
-// Note: In a real app, you'd use the Unsplash API with proper authentication
-// For this demo, we'll use a mock service that simulates Unsplash
-const mockUnsplashPhotos: UnsplashPhoto[] = [
+// Expanded mock photo database with more categories and variety
+const mockPhotoDatabase: UnsplashPhoto[] = [
+  // Meeting & Business
   {
     id: "1",
     urls: {
@@ -40,6 +41,7 @@ const mockUnsplashPhotos: UnsplashPhoto[] = [
     alt_description: "Team meeting in modern office",
     user: { name: "Annie Spratt", username: "anniespratt" },
     links: { html: "https://unsplash.com/@anniespratt" },
+    keywords: ["meeting", "business", "office", "team", "work", "professional"],
   },
   {
     id: "2",
@@ -51,76 +53,9 @@ const mockUnsplashPhotos: UnsplashPhoto[] = [
     alt_description: "People collaborating at work",
     user: { name: "Brooke Cagle", username: "brookecagle" },
     links: { html: "https://unsplash.com/@brookecagle" },
+    keywords: ["collaboration", "work", "team", "business", "office", "meeting"],
   },
-  {
-    id: "3",
-    urls: {
-      small: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1515187029135-18ee286d815b",
-    },
-    alt_description: "Coffee and planning session",
-    user: { name: "Glenna Rankin", username: "glenna" },
-    links: { html: "https://unsplash.com/@glenna" },
-  },
-  {
-    id: "4",
-    urls: {
-      small: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4",
-    },
-    alt_description: "Business meeting discussion",
-    user: { name: "Scott Graham", username: "homajob" },
-    links: { html: "https://unsplash.com/@homajob" },
-  },
-  {
-    id: "5",
-    urls: {
-      small: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1552664730-d307ca884978",
-    },
-    alt_description: "Team collaboration workspace",
-    user: { name: "Headway", username: "headwayio" },
-    links: { html: "https://unsplash.com/@headwayio" },
-  },
-  {
-    id: "6",
-    urls: {
-      small: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1559136555-9303baea8ebd",
-    },
-    alt_description: "Laptop and coffee meeting",
-    user: { name: "Laptop Mag", username: "laptopmag" },
-    links: { html: "https://unsplash.com/@laptopmag" },
-  },
-  {
-    id: "7",
-    urls: {
-      small: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0",
-    },
-    alt_description: "Professional handshake meeting",
-    user: { name: "Sebastian Herrmann", username: "officestock" },
-    links: { html: "https://unsplash.com/@officestock" },
-  },
-  {
-    id: "8",
-    urls: {
-      small: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d",
-    },
-    alt_description: "Whiteboard brainstorming session",
-    user: { name: "Alex Kotliarskyi", username: "frantic" },
-    links: { html: "https://unsplash.com/@frantic" },
-  },
-]
-
-const coffeePhotos: UnsplashPhoto[] = [
+  // Coffee & Casual
   {
     id: "c1",
     urls: {
@@ -131,6 +66,7 @@ const coffeePhotos: UnsplashPhoto[] = [
     alt_description: "Coffee cup on wooden table",
     user: { name: "Fahmi Fakhrudin", username: "fahmipaping" },
     links: { html: "https://unsplash.com/@fahmipaping" },
+    keywords: ["coffee", "cafe", "casual", "meeting", "drink", "table", "wood"],
   },
   {
     id: "c2",
@@ -142,76 +78,174 @@ const coffeePhotos: UnsplashPhoto[] = [
     alt_description: "Coffee shop atmosphere",
     user: { name: "Nathan Dumlao", username: "nate_dumlao" },
     links: { html: "https://unsplash.com/@nate_dumlao" },
+    keywords: ["coffee", "shop", "cafe", "atmosphere", "casual", "meeting", "social"],
+  },
+  // Nature & Outdoor
+  {
+    id: "n1",
+    urls: {
+      small: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e",
+    },
+    alt_description: "Forest path in nature",
+    user: { name: "Casey Horner", username: "mischievous_penguins" },
+    links: { html: "https://unsplash.com/@mischievous_penguins" },
+    keywords: ["nature", "forest", "outdoor", "trees", "path", "green", "peaceful"],
   },
   {
-    id: "c3",
+    id: "n2",
     urls: {
-      small: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb",
+      small: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4",
     },
-    alt_description: "Coffee and laptop workspace",
-    user: { name: "Avel Chuklanov", username: "chuklanov" },
-    links: { html: "https://unsplash.com/@chuklanov" },
+    alt_description: "Mountain landscape view",
+    user: { name: "Qingbao Meng", username: "qingbao" },
+    links: { html: "https://unsplash.com/@qingbao" },
+    keywords: ["mountain", "landscape", "nature", "outdoor", "view", "scenic", "adventure"],
   },
-]
-
-const teamPhotos: UnsplashPhoto[] = [
+  // Technology & Modern
   {
     id: "t1",
     urls: {
-      small: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1522071820081-009f0129c71c",
+      small: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1518709268805-4e9042af2176",
     },
-    alt_description: "Team putting hands together",
-    user: { name: "Annie Spratt", username: "anniespratt" },
-    links: { html: "https://unsplash.com/@anniespratt" },
+    alt_description: "Modern laptop and workspace",
+    user: { name: "Avel Chuklanov", username: "chuklanov" },
+    links: { html: "https://unsplash.com/@chuklanov" },
+    keywords: ["technology", "laptop", "modern", "workspace", "digital", "computer", "work"],
   },
   {
     id: "t2",
     urls: {
-      small: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=400&h=200&fit=crop",
-      regular: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&h=400&fit=crop",
-      full: "https://images.unsplash.com/photo-1556761175-b413da4baf72",
+      small: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1551288049-bebda4e38f71",
     },
-    alt_description: "Team working together",
-    user: { name: "Brooke Cagle", username: "brookecagle" },
-    links: { html: "https://unsplash.com/@brookecagle" },
+    alt_description: "Data visualization on screens",
+    user: { name: "Carlos Muza", username: "kmuza" },
+    links: { html: "https://unsplash.com/@kmuza" },
+    keywords: ["data", "analytics", "technology", "screens", "digital", "business", "modern"],
+  },
+  // Food & Social
+  {
+    id: "f1",
+    urls: {
+      small: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0",
+    },
+    alt_description: "Restaurant dining table setup",
+    user: { name: "Jay Wennington", username: "jaywennington" },
+    links: { html: "https://unsplash.com/@jaywennington" },
+    keywords: ["food", "restaurant", "dining", "social", "meal", "table", "gathering"],
+  },
+  {
+    id: "f2",
+    urls: {
+      small: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445",
+    },
+    alt_description: "Pancakes and breakfast spread",
+    user: { name: "Brooke Lark", username: "brookelark" },
+    links: { html: "https://unsplash.com/@brookelark" },
+    keywords: ["food", "breakfast", "pancakes", "meal", "brunch", "social", "gathering"],
+  },
+  // Creative & Art
+  {
+    id: "a1",
+    urls: {
+      small: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0",
+    },
+    alt_description: "Art supplies and creative workspace",
+    user: { name: "Russn_fckr", username: "russn_fckr" },
+    links: { html: "https://unsplash.com/@russn_fckr" },
+    keywords: ["art", "creative", "supplies", "workspace", "design", "artistic", "colorful"],
+  },
+  {
+    id: "a2",
+    urls: {
+      small: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b",
+    },
+    alt_description: "Colorful paint palette",
+    user: { name: "Zaksheuskaya", username: "zaksheuskaya" },
+    links: { html: "https://unsplash.com/@zaksheuskaya" },
+    keywords: ["paint", "color", "creative", "art", "palette", "artistic", "vibrant"],
+  },
+  // Sports & Activity
+  {
+    id: "s1",
+    urls: {
+      small: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
+    },
+    alt_description: "Basketball court and sports",
+    user: { name: "Markus Spiske", username: "markusspiske" },
+    links: { html: "https://unsplash.com/@markusspiske" },
+    keywords: ["sports", "basketball", "activity", "game", "court", "athletic", "exercise"],
+  },
+  {
+    id: "s2",
+    urls: {
+      small: "https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=400&h=200&fit=crop",
+      regular: "https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=800&h=400&fit=crop",
+      full: "https://images.unsplash.com/photo-1544717297-fa95b6ee9643",
+    },
+    alt_description: "Person running on track",
+    user: { name: "Braden Collum", username: "bradencollum" },
+    links: { html: "https://unsplash.com/@bradencollum" },
+    keywords: ["running", "track", "exercise", "fitness", "sports", "activity", "athletic"],
   },
 ]
 
-export function UnsplashImageSelector({ value, onChange }: UnsplashImageSelectorProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [photos, setPhotos] = useState<UnsplashPhoto[]>(mockUnsplashPhotos)
-  const [loading, setLoading] = useState(false)
-  const [selectedAttribution, setSelectedAttribution] = useState("")
+const handleSearch = async (query: string, setLoading: any, setPhotos: any) => {
+  setLoading(true)
 
-  const handleSearch = async (query: string) => {
-    setLoading(true)
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 500))
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500))
+  let results: UnsplashPhoto[] = []
 
-    // Mock search results based on query
-    let results: UnsplashPhoto[] = []
+  if (query.trim() === "") {
+    // Show default mix when no search query
+    results = mockPhotoDatabase.slice(0, 8)
+  } else {
+    // Search through all photos based on keywords and descriptions
+    const searchTerms = query.toLowerCase().split(" ")
 
-    if (query.toLowerCase().includes("coffee")) {
-      results = [...coffeePhotos, ...mockUnsplashPhotos.slice(0, 3)]
-    } else if (query.toLowerCase().includes("team")) {
-      results = [...teamPhotos, ...mockUnsplashPhotos.slice(0, 4)]
-    } else if (query.toLowerCase().includes("meeting")) {
-      results = mockUnsplashPhotos.slice(0, 6)
-    } else if (query.trim() === "") {
-      results = mockUnsplashPhotos
-    } else {
-      // Random subset for other searches
-      results = mockUnsplashPhotos.slice(0, 4)
+    results = mockPhotoDatabase.filter((photo) => {
+      const searchableText = [photo.alt_description.toLowerCase(), ...(photo.keywords || [])].join(" ")
+
+      return searchTerms.some((term) => searchableText.includes(term.toLowerCase()))
+    })
+
+    // If no matches found, show a random selection
+    if (results.length === 0) {
+      results = mockPhotoDatabase.slice(0, 6)
     }
 
-    setPhotos(results)
-    setLoading(false)
+    // Limit results to prevent overwhelming UI
+    results = results.slice(0, 12)
   }
+
+  setPhotos(results)
+  setLoading(false)
+}
+
+export function UnsplashImageSelector({ value, onChange }: UnsplashImageSelectorProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [photos, setPhotos] = useState<UnsplashPhoto[]>(mockPhotoDatabase.slice(0, 8))
+  const [loading, setLoading] = useState(false)
+  const [selectedAttribution, setSelectedAttribution] = useState("")
 
   const handlePhotoSelect = (photo: UnsplashPhoto) => {
     const attribution = `Photo by ${photo.user.name} on Unsplash`
@@ -220,7 +254,7 @@ export function UnsplashImageSelector({ value, onChange }: UnsplashImageSelector
   }
 
   const handleRandomPhotos = () => {
-    const shuffled = [...mockUnsplashPhotos].sort(() => 0.5 - Math.random())
+    const shuffled = [...mockPhotoDatabase].sort(() => 0.5 - Math.random())
     setPhotos(shuffled)
     setSearchQuery("")
   }
@@ -228,11 +262,11 @@ export function UnsplashImageSelector({ value, onChange }: UnsplashImageSelector
   useEffect(() => {
     if (searchQuery) {
       const debounceTimer = setTimeout(() => {
-        handleSearch(searchQuery)
+        handleSearch(searchQuery, setLoading, setPhotos)
       }, 300)
       return () => clearTimeout(debounceTimer)
     } else {
-      setPhotos(mockUnsplashPhotos)
+      setPhotos(mockPhotoDatabase.slice(0, 8))
     }
   }, [searchQuery])
 

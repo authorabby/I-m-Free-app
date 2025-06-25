@@ -241,6 +241,11 @@ export default function HomePage() {
     const user = JSON.parse(userData)
     setCurrentUser(user)
 
+    // Create persistent current events for demo accounts
+    if (demoAccounts.includes(user.username)) {
+      createDemoCurrentEvents(user.username)
+    }
+
     // Load the user's events from storage
     const userEventsData = localStorage.getItem(`userEvents_${user.username}`)
     const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
@@ -270,13 +275,18 @@ export default function HomePage() {
       filteredEvents = addMeetingsToCompletedEvents(filteredEvents)
     }
 
-    // Auto-archive completed events older than 1 month
+    // Auto-archive completed events older than 1 month (but keep demo current events)
     const oneMonthAgo = new Date()
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
 
     const activeEvents = filteredEvents.filter((event) => {
       const status = getEventStatus(event)
       const eventEndDate = new Date(event.endDate)
+
+      // Always keep demo current events (they have special IDs)
+      if (event.id.startsWith("demo_current_")) {
+        return true
+      }
 
       // Keep event if it's not completed or if it's completed but less than 1 month old
       return status.label !== "Completed" || eventEndDate > oneMonthAgo
@@ -292,6 +302,269 @@ export default function HomePage() {
       setArchivedEvents(demoArchived)
     }
   }, [router, isDemoAccount])
+
+  // This function creates persistent current events for demo accounts that never get archived
+  const createDemoCurrentEvents = (username: string) => {
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const nextWeek = new Date(today)
+    nextWeek.setDate(nextWeek.getDate() + 7)
+    const nextMonth = new Date(today)
+    nextMonth.setMonth(nextMonth.getMonth() + 1)
+
+    const formatDate = (date: Date) => date.toISOString().split("T")[0]
+
+    // Define demo events for each user
+    const demoEvents: Record<string, any[]> = {
+      alice: [
+        {
+          id: "demo_current_alice_1",
+          title: "Weekly Team Standup",
+          startDate: formatDate(today),
+          endDate: formatDate(nextWeek),
+          startTime: "09:00",
+          endTime: "17:00",
+          creator: "Alice Johnson",
+          coverImage: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=400&fit=crop",
+          coverImageAttribution: "Photo by Headway on Unsplash",
+          participants: [
+            {
+              name: "Alice Johnson",
+              email: "alice@example.com",
+              availability: {
+                [`${formatDate(today)}_09:00`]: true,
+                [`${formatDate(today)}_09:30`]: true,
+                [`${formatDate(today)}_10:00`]: true,
+                [`${formatDate(tomorrow)}_14:00`]: true,
+                [`${formatDate(tomorrow)}_14:30`]: true,
+                [`${formatDate(tomorrow)}_15:00`]: true,
+              },
+            },
+            {
+              name: "Bob Smith",
+              email: "bob@example.com",
+              availability: {
+                [`${formatDate(today)}_09:30`]: true,
+                [`${formatDate(today)}_10:00`]: true,
+                [`${formatDate(today)}_10:30`]: true,
+                [`${formatDate(tomorrow)}_14:00`]: true,
+                [`${formatDate(tomorrow)}_14:30`]: true,
+              },
+            },
+            {
+              name: "Carol Davis",
+              availability: {
+                [`${formatDate(today)}_10:00`]: true,
+                [`${formatDate(today)}_10:30`]: true,
+                [`${formatDate(tomorrow)}_14:30`]: true,
+                [`${formatDate(tomorrow)}_15:00`]: true,
+              },
+            },
+          ],
+          meetings: [],
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "demo_current_alice_2",
+          title: "Client Strategy Session",
+          startDate: formatDate(nextWeek),
+          endDate: formatDate(nextMonth),
+          startTime: "13:00",
+          endTime: "18:00",
+          creator: "Alice Johnson",
+          coverImage: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=400&fit=crop",
+          coverImageAttribution: "Photo by Campaign Creators on Unsplash",
+          participants: [
+            {
+              name: "Alice Johnson",
+              email: "alice@example.com",
+              availability: {
+                [`${formatDate(nextWeek)}_13:00`]: true,
+                [`${formatDate(nextWeek)}_13:30`]: true,
+                [`${formatDate(nextWeek)}_14:00`]: true,
+              },
+            },
+            {
+              name: "David Wilson",
+              availability: {
+                [`${formatDate(nextWeek)}_13:30`]: true,
+                [`${formatDate(nextWeek)}_14:00`]: true,
+                [`${formatDate(nextWeek)}_14:30`]: true,
+              },
+            },
+          ],
+          meetings: [],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      bob: [
+        {
+          id: "demo_current_bob_1",
+          title: "Product Development Review",
+          startDate: formatDate(tomorrow),
+          endDate: formatDate(nextWeek),
+          startTime: "10:00",
+          endTime: "16:00",
+          creator: "Bob Smith",
+          coverImage: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&h=400&fit=crop",
+          coverImageAttribution: "Photo by Helena Hertz on Unsplash",
+          participants: [
+            {
+              name: "Bob Smith",
+              email: "bob@example.com",
+              availability: {
+                [`${formatDate(tomorrow)}_10:00`]: true,
+                [`${formatDate(tomorrow)}_10:30`]: true,
+                [`${formatDate(tomorrow)}_11:00`]: true,
+              },
+            },
+            {
+              name: "Alice Johnson",
+              email: "alice@example.com",
+              availability: {
+                [`${formatDate(tomorrow)}_10:30`]: true,
+                [`${formatDate(tomorrow)}_11:00`]: true,
+                [`${formatDate(tomorrow)}_11:30`]: true,
+              },
+            },
+            {
+              name: "Carol Davis",
+              availability: {
+                [`${formatDate(tomorrow)}_11:00`]: true,
+                [`${formatDate(tomorrow)}_11:30`]: true,
+                [`${formatDate(tomorrow)}_12:00`]: true,
+              },
+            },
+          ],
+          meetings: [],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      carol: [
+        {
+          id: "demo_current_carol_1",
+          title: "Design Workshop",
+          startDate: formatDate(today),
+          endDate: formatDate(tomorrow),
+          startTime: "14:00",
+          endTime: "18:00",
+          creator: "Carol Davis",
+          coverImage: "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=800&h=400&fit=crop",
+          coverImageAttribution: "Photo by UX Indonesia on Unsplash",
+          participants: [
+            {
+              name: "Carol Davis",
+              availability: {
+                [`${formatDate(today)}_14:00`]: true,
+                [`${formatDate(today)}_14:30`]: true,
+                [`${formatDate(today)}_15:00`]: true,
+                [`${formatDate(tomorrow)}_14:00`]: true,
+                [`${formatDate(tomorrow)}_14:30`]: true,
+              },
+            },
+            {
+              name: "Alice Johnson",
+              email: "alice@example.com",
+              availability: {
+                [`${formatDate(today)}_14:30`]: true,
+                [`${formatDate(today)}_15:00`]: true,
+                [`${formatDate(tomorrow)}_14:00`]: true,
+                [`${formatDate(tomorrow)}_14:30`]: true,
+              },
+            },
+          ],
+          meetings: [],
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "demo_current_carol_2",
+          title: "Marketing Campaign Planning",
+          startDate: formatDate(nextWeek),
+          endDate: formatDate(nextMonth),
+          startTime: "09:00",
+          endTime: "17:00",
+          creator: "Carol Davis",
+          coverImage: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=800&h=400&fit=crop",
+          coverImageAttribution: "Photo by Merakist on Unsplash",
+          participants: [
+            {
+              name: "Carol Davis",
+              availability: {
+                [`${formatDate(nextWeek)}_09:00`]: true,
+                [`${formatDate(nextWeek)}_09:30`]: true,
+                [`${formatDate(nextWeek)}_10:00`]: true,
+              },
+            },
+          ],
+          meetings: [],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      david: [
+        {
+          id: "demo_current_david_1",
+          title: "Technical Architecture Discussion",
+          startDate: formatDate(tomorrow),
+          endDate: formatDate(nextWeek),
+          startTime: "11:00",
+          endTime: "17:00",
+          creator: "David Wilson",
+          coverImage: "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=800&h=400&fit=crop",
+          coverImageAttribution: "Photo by Luca Bravo on Unsplash",
+          participants: [
+            {
+              name: "David Wilson",
+              availability: {
+                [`${formatDate(tomorrow)}_11:00`]: true,
+                [`${formatDate(tomorrow)}_11:30`]: true,
+                [`${formatDate(tomorrow)}_12:00`]: true,
+              },
+            },
+            {
+              name: "Bob Smith",
+              email: "bob@example.com",
+              availability: {
+                [`${formatDate(tomorrow)}_11:30`]: true,
+                [`${formatDate(tomorrow)}_12:00`]: true,
+                [`${formatDate(tomorrow)}_12:30`]: true,
+              },
+            },
+          ],
+          meetings: [],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    }
+
+    // Create events for the current user
+    const userEvents = demoEvents[username] || []
+
+    userEvents.forEach((eventData) => {
+      // Only create if it doesn't already exist
+      if (!localStorage.getItem(`event_${eventData.id}`)) {
+        localStorage.setItem(`event_${eventData.id}`, JSON.stringify(eventData))
+      }
+    })
+
+    // Update user events mapping
+    const userEventsData = localStorage.getItem(`userEvents_${username}`)
+    const userEventsList: UserEventData[] = userEventsData ? JSON.parse(userEventsData) : []
+
+    // Add current demo events to user's event list
+    userEvents.forEach((eventData) => {
+      const existingEvent = userEventsList.find((ue) => ue.eventId === eventData.id)
+      if (!existingEvent) {
+        userEventsList.push({
+          eventId: eventData.id,
+          role: eventData.creator.toLowerCase().includes(username) ? "creator" : "participant",
+          participantName: eventData.participants.find((p) => p.name.toLowerCase().includes(username))?.name,
+        })
+      }
+    })
+
+    localStorage.setItem(`userEvents_${username}`, JSON.stringify(userEventsList))
+  }
 
   // This function logs the user out
   const handleLogout = () => {

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Calendar,
   Clock,
@@ -21,6 +22,7 @@ import {
   Moon,
   Sun,
   Archive,
+  Info,
 } from "lucide-react"
 import { AvailabilitySelector } from "@/components/availability-selector"
 import { CoverImageSelector } from "@/components/cover-image-selector"
@@ -80,6 +82,9 @@ interface CurrentUser {
   email?: string
 }
 
+// Maximum number of current events a user can have
+const MAX_CURRENT_EVENTS = 5
+
 // This is the main home page component
 // It shows all events and lets users create new ones
 export default function HomePage() {
@@ -107,6 +112,9 @@ export default function HomePage() {
 
   // Check if the current user is a demo account
   const isDemoAccount = currentUser ? demoAccounts.includes(currentUser.username) : false
+
+  // Check if user has reached the event limit
+  const hasReachedEventLimit = existingEvents.length >= MAX_CURRENT_EVENTS
 
   // This function creates demo archived events for demo users
   const createDemoArchivedEvents = (username: string): ArchivedEvent[] => {
@@ -593,6 +601,14 @@ export default function HomePage() {
 
   // This function creates a new event
   const handleCreateEvent = () => {
+    // Check if user has reached the event limit
+    if (hasReachedEventLimit) {
+      alert(
+        `You can only have ${MAX_CURRENT_EVENTS} current events at a time. Please complete or archive some events before creating new ones.`,
+      )
+      return
+    }
+
     // Make sure all required fields are filled out
     if (!eventTitle || !startDate || !endDate || !currentUser) {
       alert("Please fill in all required fields")
@@ -786,7 +802,7 @@ export default function HomePage() {
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-transparent"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -798,12 +814,21 @@ export default function HomePage() {
         {existingEvents.length > 0 && (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Your Events</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Your Events</h2>
+                <Badge
+                  variant="outline"
+                  className="border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+                >
+                  {existingEvents.length} / {MAX_CURRENT_EVENTS}
+                </Badge>
+              </div>
               {/* Only show "New Event" button for non-demo accounts */}
               {!isDemoAccount && (
                 <Button
                   onClick={() => setShowCreateForm(true)}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 dark:from-orange-500 dark:to-pink-500 hover:from-violet-600 hover:to-purple-700 dark:hover:from-orange-600 dark:hover:to-pink-600 text-white shadow-lg"
+                  disabled={hasReachedEventLimit}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 dark:from-orange-500 dark:to-pink-500 hover:from-violet-600 hover:to-purple-700 dark:hover:from-orange-600 dark:hover:to-pink-600 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   New Event
@@ -817,6 +842,29 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+
+            {/* Event limit warning */}
+            {!isDemoAccount && hasReachedEventLimit && (
+              <Alert className="mb-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertDescription className="text-amber-800 dark:text-amber-200">
+                  You've reached the maximum of {MAX_CURRENT_EVENTS} current events. Complete or archive some events to
+                  create new ones.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Event limit info for users approaching the limit */}
+            {!isDemoAccount && !hasReachedEventLimit && existingEvents.length >= MAX_CURRENT_EVENTS - 1 && (
+              <Alert className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  You can create {MAX_CURRENT_EVENTS - existingEvents.length} more event
+                  {MAX_CURRENT_EVENTS - existingEvents.length !== 1 ? "s" : ""}. Events are automatically archived when
+                  completed and older than 1 month.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Grid of event cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -984,7 +1032,8 @@ export default function HomePage() {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Create your first event</h3>
               <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
-                Start by creating a scheduling event and invite others to share their availability
+                Start by creating a scheduling event and invite others to share their availability. You can have up to{" "}
+                {MAX_CURRENT_EVENTS} current events at a time.
               </p>
               <Button
                 onClick={() => setShowCreateForm(true)}
@@ -1023,7 +1072,8 @@ export default function HomePage() {
                 Create New Event
               </CardTitle>
               <CardDescription className="text-violet-100 dark:text-orange-100">
-                Set up a new scheduling event and share it with others
+                Set up a new scheduling event and share it with others ({existingEvents.length}/{MAX_CURRENT_EVENTS}{" "}
+                events)
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
@@ -1151,7 +1201,8 @@ export default function HomePage() {
                 </Button>
                 <Button
                   onClick={handleCreateEvent}
-                  className="bg-gradient-to-r from-violet-500 to-purple-600 dark:from-orange-500 dark:to-pink-500 hover:from-violet-600 hover:to-purple-700 dark:hover:from-orange-600 dark:hover:to-pink-600 text-white shadow-lg flex-1"
+                  disabled={hasReachedEventLimit}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 dark:from-orange-500 dark:to-pink-500 hover:from-violet-600 hover:to-purple-700 dark:hover:from-orange-600 dark:hover:to-pink-600 text-white shadow-lg flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Users className="w-4 h-4 mr-2" />
                   Create Event & Get Shareable Link

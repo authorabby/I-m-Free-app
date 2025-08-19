@@ -101,7 +101,8 @@ export default function EventPage() {
     // Check if someone is logged in
     const userData = localStorage.getItem("currentUser")
     if (!userData) {
-      router.push("/login")
+      // Redirect to login with event parameter for shared links
+      router.push(`/login?event=${eventId}`)
       return
     }
 
@@ -124,7 +125,7 @@ export default function EventPage() {
     }
 
     // Set the URL for sharing this event
-    setShareUrl(window.location.href)
+    setShareUrl(`${window.location.origin}/login?event=${eventId}`)
   }, [eventId, router])
 
   // This function logs the user out
@@ -272,7 +273,7 @@ export default function EventPage() {
   // This function copies the event URL to clipboard
   const copyShareUrl = () => {
     navigator.clipboard.writeText(shareUrl)
-    alert("Link copied to clipboard! 🎉")
+    alert("Share link copied to clipboard! 🎉")
   }
 
   // This function checks if someone can edit a participant's availability
@@ -402,7 +403,7 @@ export default function EventPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-transparent"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
@@ -442,7 +443,7 @@ export default function EventPage() {
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-transparent"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -600,7 +601,7 @@ export default function EventPage() {
                   variant="outline"
                   size="sm"
                   onClick={copyShareUrl}
-                  className="border-violet-200 dark:border-orange-400 text-violet-600 dark:text-orange-400 hover:bg-violet-50 dark:hover:bg-orange-900/20"
+                  className="border-violet-200 dark:border-orange-400 text-violet-600 dark:text-orange-400 hover:bg-violet-50 dark:hover:bg-orange-900/20 bg-transparent"
                 >
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Link
@@ -716,7 +717,7 @@ export default function EventPage() {
                 <Button
                   variant="outline"
                   onClick={handleCancelEdit}
-                  className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 bg-transparent"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancel
